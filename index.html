@@ -6,148 +6,152 @@
 <title>JobSwipe — Swipe Your Way to a Job</title>
 <style>
   :root{
-    --bg:#0f1220; --panel:#1a1e33; --panel2:#232849; --text:#eef0ff; --muted:#9aa0c3;
-    --accent:#7c5cff; --accent2:#4dd0e1; --yes:#2ecc71; --no:#ff5a5f; --gold:#ffcf6e;
-    --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.45);
+    --bg:#f7f7f8; --panel:#ffffff; --panel2:#ffffff; --text:#18181b; --muted:#8e8e96;
+    --line:#e6e6ea; --accent:#18181b; --accent2:#18181b; --yes:#16a34a; --no:#dc2626; --gold:#a16207;
+    --radius:20px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:radial-gradient(1200px 800px at 80% -10%, #2b2f5e 0%, var(--bg) 55%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
     color:var(--text); min-height:100dvh; display:flex; flex-direction:column;
     -webkit-tap-highlight-color:transparent;
+    -webkit-font-smoothing:antialiased;
   }
   header{
     display:flex;align-items:center;justify-content:space-between;
-    padding:14px 18px 8px;gap:10px;
+    padding:18px 20px 10px;gap:10px;
   }
-  .logo{font-weight:800;font-size:20px;letter-spacing:.3px}
-  .logo span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-  nav{display:flex;gap:4px;background:var(--panel);border-radius:999px;padding:4px;margin:0 14px 10px;overflow-x:auto}
+  .logo{font-weight:700;font-size:19px;letter-spacing:-.4px}
+  .logo span{color:var(--muted);font-weight:500}
+  nav{display:flex;gap:2px;background:#ececef;border-radius:12px;padding:3px;margin:0 16px 14px}
   nav button{
-    flex:1;border:0;background:transparent;color:var(--muted);padding:9px 10px;border-radius:999px;
-    font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;
+    flex:1;border:0;background:transparent;color:var(--muted);padding:9px 8px;border-radius:10px;
+    font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;letter-spacing:-.1px;
   }
-  nav button.active{background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.4)}
+  nav button.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   main{flex:1;display:flex;flex-direction:column;padding:0 14px 18px;max-width:560px;width:100%;margin:0 auto}
   section{display:none;flex:1;flex-direction:column}
   section.active{display:flex}
 
   /* ---------- swipe view ---------- */
   .statusbar{font-size:12px;color:var(--muted);text-align:center;padding:4px 0 10px;min-height:22px}
-  .statusbar b{color:var(--accent2)}
+  .statusbar b{color:var(--text)}
   .deck{position:relative;flex:1;min-height:420px;max-height:600px;touch-action:pan-x}
   .card{
-    position:absolute;inset:0;background:linear-gradient(180deg,var(--panel2),var(--panel));
-    border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);box-shadow:var(--shadow);
-    padding:20px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+    position:absolute;inset:0;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:24px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
     will-change:transform;user-select:none;
   }
   .card .src{display:flex;justify-content:space-between;align-items:center}
-  .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(124,92,255,.18);color:#b7a6ff;letter-spacing:.4px;text-transform:uppercase}
-  .posted{font-size:11px;color:var(--muted)}
-  .card h2{font-size:21px;line-height:1.25;margin-top:2px}
-  .company{font-size:15px;color:var(--accent2);font-weight:600}
-  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
-  .chip{font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);padding:4px 10px;border-radius:999px;color:#cfd3ef}
-  .chip.salary{background:rgba(255,207,110,.14);color:var(--gold);border-color:rgba(255,207,110,.25);font-weight:700}
+  .badge{font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#f4f4f5;color:var(--muted);letter-spacing:.6px;text-transform:uppercase}
+  .posted{font-size:11.5px;color:var(--muted)}
+  .card h2{font-size:22px;line-height:1.25;margin-top:4px;letter-spacing:-.5px;font-weight:700}
+  .company{font-size:15px;color:var(--text);font-weight:500}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{font-size:12px;background:#f4f4f5;border:1px solid transparent;padding:5px 11px;border-radius:999px;color:#52525b}
+  .chip.salary{background:#fefce8;color:var(--gold);font-weight:600}
   .desc{
-    font-size:13.5px;line-height:1.55;color:#c6cae6;overflow-y:auto;flex:1;margin-top:4px;
+    font-size:14px;line-height:1.6;color:#52525b;overflow-y:auto;flex:1;margin-top:6px;
     padding-right:4px;-webkit-overflow-scrolling:touch;
   }
   .desc::-webkit-scrollbar{width:4px}
-  .desc::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-  .applylink{font-size:12.5px;color:var(--accent2);text-decoration:none;font-weight:600}
+  .desc::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+  .applylink{font-size:13px;color:var(--text);text-decoration:underline;text-underline-offset:3px;font-weight:500}
   .stamp{
-    position:absolute;top:26px;font-size:30px;font-weight:900;letter-spacing:2px;padding:6px 16px;
-    border:4px solid;border-radius:10px;opacity:0;transform:rotate(-14deg);pointer-events:none;
+    position:absolute;top:28px;font-size:24px;font-weight:800;letter-spacing:3px;padding:6px 16px;
+    border:3px solid;border-radius:8px;opacity:0;transform:rotate(-12deg);pointer-events:none;background:#fff;
   }
-  .stamp.like{left:18px;color:var(--yes);border-color:var(--yes)}
-  .stamp.nope{right:18px;color:var(--no);border-color:var(--no);transform:rotate(14deg)}
-  .actions{display:flex;justify-content:center;gap:22px;padding:16px 0 4px}
+  .stamp.like{left:20px;color:var(--yes);border-color:var(--yes)}
+  .stamp.nope{right:20px;color:var(--no);border-color:var(--no);transform:rotate(12deg)}
+  .actions{display:flex;justify-content:center;align-items:center;gap:20px;padding:18px 0 6px}
   .actions button{
-    width:64px;height:64px;border-radius:50%;border:0;font-size:26px;cursor:pointer;
+    width:62px;height:62px;border-radius:50%;font-size:24px;cursor:pointer;background:#fff;
     display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:transform .12s;
+    border:1px solid var(--line);
   }
   .actions button:active{transform:scale(.9)}
-  .btn-no{background:linear-gradient(135deg,#3a2030,#2a1622);color:var(--no);border:1px solid rgba(255,90,95,.4)}
-  .btn-yes{background:linear-gradient(135deg,#15342a,#0f2a1f);color:var(--yes);border:1px solid rgba(46,204,113,.4)}
-  .btn-undo{width:48px;height:48px;font-size:18px;background:var(--panel);color:var(--muted);align-self:center;border:1px solid rgba(255,255,255,.1)}
-  .hint{text-align:center;font-size:11.5px;color:var(--muted);padding-bottom:2px}
+  .btn-no{color:var(--no)}
+  .btn-yes{color:var(--yes)}
+  .btn-undo{width:44px;height:44px;font-size:16px;color:var(--muted)}
+  .hint{text-align:center;font-size:11.5px;color:var(--muted);padding-bottom:4px}
   .empty{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:14px;text-align:center;color:var(--muted);padding:30px;
+    gap:16px;text-align:center;color:var(--muted);padding:30px;
   }
-  .empty h3{color:var(--text);font-size:18px}
+  .empty h3{color:var(--text);font-size:19px;letter-spacing:-.3px}
+  .empty p{font-size:13.5px;line-height:1.6}
   .primary{
-    background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff;border:0;padding:12px 22px;
-    border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(124,92,255,.4);
+    background:var(--text);color:#fff;border:0;padding:13px 24px;
+    border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;
   }
-  .ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text);padding:10px 18px;border-radius:12px;font-size:13px;cursor:pointer}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;font-size:13px;cursor:pointer;font-weight:500}
 
   /* ---------- saved ---------- */
   .savedlist{display:flex;flex-direction:column;gap:10px;padding-top:6px}
-  .saveditem{background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px}
-  .saveditem h4{font-size:15px;margin-bottom:2px}
-  .saveditem .sub{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .saveditem{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .saveditem h4{font-size:15px;margin-bottom:2px;letter-spacing:-.2px}
+  .saveditem .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
   .saveditem .row{display:flex;gap:8px;flex-wrap:wrap}
-  .mini{font-size:12px;padding:7px 12px;border-radius:9px;border:0;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
-  .mini.apply{background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff}
-  .mini.mail{background:rgba(77,208,225,.15);color:var(--accent2);border:1px solid rgba(77,208,225,.3)}
-  .mini.del{background:rgba(255,90,95,.12);color:var(--no);border:1px solid rgba(255,90,95,.3)}
+  .mini{font-size:12.5px;padding:8px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+  .mini.apply{background:var(--text);color:#fff}
+  .mini.mail{background:#f4f4f5;color:var(--text);border:1px solid var(--line)}
+  .mini.del{background:transparent;color:var(--no);border:1px solid var(--line)}
 
   /* ---------- boards ---------- */
-  .boards{display:flex;flex-direction:column;gap:10px;padding-top:6px}
-  .board{background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--text);display:flex;justify-content:space-between;align-items:center}
-  .board:active{background:var(--panel2)}
-  .board .b-name{font-weight:700;font-size:14.5px}
+  .boards{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+  .board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+  .board:active{background:#f4f4f5}
+  .board .b-name{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
   .board .b-desc{font-size:12px;color:var(--muted);margin-top:2px}
-  .board .arrow{color:var(--accent2);font-size:18px}
-  .grouplabel{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:14px 2px 2px}
+  .board .arrow{color:var(--muted);font-size:16px}
+  .grouplabel{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin:16px 2px 4px}
 
   /* ---------- settings ---------- */
   form{display:flex;flex-direction:column;gap:14px;padding:10px 2px 30px}
-  .field label{display:block;font-size:12.5px;font-weight:700;color:#cfd3ef;margin-bottom:5px}
-  .field .note{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
-  .field .note a{color:var(--accent2)}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px}
+  .field .note{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .field .note a{color:var(--text)}
   input,select{
-    width:100%;background:var(--panel);border:1px solid rgba(255,255,255,.12);color:var(--text);
-    padding:11px 12px;border-radius:11px;font-size:14px;outline:none;
+    width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:12px;border-radius:11px;font-size:14px;outline:none;appearance:none;-webkit-appearance:none;
   }
-  input:focus,select:focus{border-color:var(--accent)}
+  input:focus,select:focus{border-color:var(--text)}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:12px;border-radius:11px;border:1px solid rgba(255,255,255,.12)}
-  .switch label{font-size:13.5px;font-weight:600}
-  .switch input{width:auto;transform:scale(1.4);accent-color:var(--accent)}
-  fieldset{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
-  legend{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);padding:0 6px}
+  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:13px;border-radius:11px;border:1px solid var(--line)}
+  .switch label{font-size:13.5px;font-weight:500}
+  .switch input{width:auto;transform:scale(1.3);accent-color:var(--text)}
+  fieldset{border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--panel)}
+  legend{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:0 6px}
 
   /* toast */
   #toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-    background:#2b2f55;color:#fff;padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;
-    box-shadow:var(--shadow);transition:transform .3s;z-index:99;max-width:90vw;text-align:center;
+    background:var(--text);color:#fff;padding:13px 20px;border-radius:12px;font-size:13.5px;font-weight:500;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);transition:transform .3s;z-index:99;max-width:90vw;text-align:center;
   }
+  #toast a{color:#a5f3fc}
   #toast.show{transform:translateX(-50%) translateY(0)}
-  #toast.ok{border-left:4px solid var(--yes)}
-  #toast.err{border-left:4px solid var(--no)}
-  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+  #toast.ok{}
+  #toast.err{background:#7f1d1d}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
   @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">Job<span>Swipe</span> 🧠</div>
+  <div class="logo">Job<span>Swipe</span></div>
   <div class="statusbar" id="topStatus"></div>
 </header>
 
 <nav>
-  <button data-tab="swipe" class="active">🔥 Swipe</button>
-  <button data-tab="saved">💚 Saved <span id="savedCount"></span></button>
-  <button data-tab="boards">🌐 Boards</button>
-  <button data-tab="settings">⚙️ Settings</button>
+  <button data-tab="swipe" class="active">Swipe</button>
+  <button data-tab="saved">Saved <span id="savedCount"></span></button>
+  <button data-tab="boards">Boards</button>
+  <button data-tab="settings">Settings</button>
 </nav>
 
 <main>
@@ -156,18 +160,18 @@
     <div class="statusbar" id="fetchStatus"></div>
     <div class="deck" id="deck">
       <div class="empty" id="emptyState">
-        <h3>Welcome to JobSwipe 👋</h3>
-        <p>Set your preferences, then hit <b>Find Jobs</b>.<br>Swipe right ❤️ to get the job emailed to you.<br>Swipe left ✖️ to pass — you won't see it again.</p>
-        <button class="primary" id="btnFind">🔎 Find Jobs</button>
-        <button class="ghost" id="btnGoSettings">Set preferences first</button>
+        <h3>Welcome to JobSwipe</h3>
+        <p>Set your preferences, then find jobs.<br>Swipe right to get the job emailed to you.<br>Swipe left to pass — you won't see it again.</p>
+        <button class="primary" id="btnFind">Find jobs</button>
+        <button class="ghost" id="btnGoSettings">Set preferences</button>
       </div>
     </div>
     <div class="actions">
-      <button class="btn-no" id="btnNo" title="Pass (left arrow)">✖️</button>
-      <button class="btn-undo" id="btnUndo" title="Undo last swipe">↩️</button>
-      <button class="btn-yes" id="btnYes" title="Interested — email me (right arrow)">❤️</button>
+      <button class="btn-no" id="btnNo" title="Pass (left arrow)">✕</button>
+      <button class="btn-undo" id="btnUndo" title="Undo last swipe">↺</button>
+      <button class="btn-yes" id="btnYes" title="Interested — email me (right arrow)">♥</button>
     </div>
-    <div class="hint">Swipe or use ← → arrow keys · ❤️ = emailed to you + saved</div>
+    <div class="hint">Swipe or use ← → keys · right = emailed to you + saved</div>
   </section>
 
   <!-- SAVED -->
@@ -284,7 +288,7 @@
         </div>
       </fieldset>
 
-      <button class="primary" type="submit">💾 Save preferences</button>
+      <button class="primary" type="submit">Save preferences</button>
       <button class="ghost" type="button" id="btnReset">Reset seen jobs (show everything again)</button>
     </form>
   </section>
@@ -306,8 +310,8 @@ const store = {
 const DEFAULT_PREFS = {
   keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
   salary:"", distance:"", fullTime:false, remote:true,
-  email:"", ejsService:"", ejsTemplate:"", ejsKey:"",
-  adzId:"", adzKey:"", joobleKey:""
+  email:"", ejsService:"service_na5yeqp", ejsTemplate:"template_nql1yql", ejsKey:"",
+  adzId:"35c8d5d9", adzKey:"11991a9bd1fcb5b2da80c34892a55b55", joobleKey:""
 };
 
 let prefs   = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
@@ -428,17 +432,17 @@ async function findJobs(){
   if(fetching) return;
   fetching = true;
   $("#fetchStatus").innerHTML = '<span class="spin"></span> Searching job boards…';
+  const NAMES = ["Adzuna","Jooble","The Muse","Remotive"];
   const results = await Promise.allSettled(SOURCES.map(s=>s()));
   const parts=[]; let fresh=[];
-  results.forEach(res=>{
+  results.forEach((res,i)=>{
     if(res.status==="fulfilled"){
       const {name, jobs, skipped} = res.value;
       if(skipped){ parts.push(name+": —"); return; }
       parts.push(name+": "+jobs.length);
       fresh = fresh.concat(jobs);
     } else {
-      const msg = String(res.reason&&res.reason.message||res.reason);
-      parts.push((msg.match(/Adzuna|Muse|Remotive|Jooble/)||["a source"])[0]+": ✗");
+      parts.push(NAMES[i]+": ✗");
     }
   });
   // dedupe by id and by title+company, drop already-seen and already-queued
@@ -483,12 +487,12 @@ function renderDeck(){
       <h2>${esc(job.title)}</h2>
       <div class="company">${esc(job.company)}</div>
       <div class="meta">
-        ${job.location?`<span class="chip">📍 ${esc(job.location)}</span>`:""}
-        ${job.salary?`<span class="chip salary">💰 ${esc(job.salary)}</span>`:""}
-        ${job.type?`<span class="chip">⏰ ${esc(job.type)}</span>`:""}
+        ${job.location?`<span class="chip">${esc(job.location)}</span>`:""}
+        ${job.salary?`<span class="chip salary">${esc(job.salary)}</span>`:""}
+        ${job.type?`<span class="chip">${esc(job.type)}</span>`:""}
       </div>
       <div class="desc">${esc(job.description||"No description provided — open the listing for details.")}</div>
-      <a class="applylink" href="${esc(job.url)}" target="_blank" rel="noopener">🔗 View full listing</a>
+      <a class="applylink" href="${esc(job.url)}" target="_blank" rel="noopener">View full listing →</a>
       <div class="stamp like">LIKE</div>
       <div class="stamp nope">NOPE</div>`;
     deck.appendChild(el);
@@ -557,7 +561,7 @@ function undo(){
   seen.delete(last.job.id); store.set(LS.seen,[...seen]);
   if(last.dir===1){ saved=saved.filter(j=>j.id!==last.job.id); store.set(LS.saved,saved); renderSaved(); }
   queue.unshift(last.job); renderDeck();
-  toast("↩️ Brought back: "+esc(last.job.title));
+  toast("Brought back: "+esc(last.job.title));
 }
 
 /* ---------- like: save + email ---------- */
@@ -579,7 +583,7 @@ function mailtoFallback(job){
 
 async function sendJobEmail(job){
   if(!emailConfigured()){
-    toast(`💚 Saved. <a href="${mailtoFallback(job)}" style="color:var(--accent2)">Email it to yourself</a> · or set up EmailJS in Settings for automatic emails`);
+    toast(`Saved. <a href="${mailtoFallback(job)}">Email it to yourself</a> — or finish EmailJS setup in Settings for automatic emails`);
     return;
   }
   toast('<span class="spin"></span> Saved — emailing you the details…');
@@ -595,10 +599,10 @@ async function sendJobEmail(job){
       description: (job.description||"").slice(0,1500),
       apply_url: job.url
     }, {publicKey: prefs.ejsKey});
-    toast("📧 Emailed you: "+esc(job.title), "ok");
+    toast("Emailed you: "+esc(job.title), "ok");
   }catch(err){
     console.error(err);
-    toast(`⚠️ Email failed (${esc(err?.text||err?.message||"check EmailJS keys")}) — job is saved in 💚 Saved`, "err");
+    toast(`Email failed (${esc(err?.text||err?.message||"check EmailJS keys")}) — job kept in Saved`, "err");
   }
 }
 
@@ -606,7 +610,7 @@ async function sendJobEmail(job){
 function renderSaved(){
   $("#savedCount").textContent = saved.length ? "("+saved.length+")" : "";
   const list=$("#savedList");
-  if(!saved.length){ list.innerHTML='<div class="empty" style="position:static"><h3>No saved jobs yet</h3><p>Swipe right ❤️ on jobs you like and they\'ll collect here (and land in your inbox).</p></div>'; return; }
+  if(!saved.length){ list.innerHTML='<div class="empty" style="position:static"><h3>No saved jobs yet</h3><p>Swipe right on jobs you like and they\'ll collect here (and land in your inbox).</p></div>'; return; }
   list.innerHTML = saved.map(j=>`
     <div class="saveditem">
       <h4>${esc(j.title)}</h4>
@@ -685,7 +689,7 @@ $("#prefsForm").addEventListener("submit", e=>{
   store.set(LS.prefs, prefs);
   $("#topStatus").textContent="";
   if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
-  toast("💾 Preferences saved","ok");
+  toast("Preferences saved","ok");
   queue=[]; renderBoards(); switchTab("swipe"); findJobs();
 });
 $("#btnReset").addEventListener("click", ()=>{
@@ -718,7 +722,7 @@ $("#btnGoSettings").addEventListener("click", ()=>switchTab("settings"));
 if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
 renderSaved(); renderBoards(); renderDeck();
 const hasPrefs = !!store.get(LS.prefs, null);
-if(hasPrefs){ findJobs(); } else { $("#topStatus").textContent="First time? Set your preferences ⚙️"; }
+if(hasPrefs){ findJobs(); } else { $("#topStatus").textContent="First time? Set your preferences"; }
 </script>
 </body>
 </html>
