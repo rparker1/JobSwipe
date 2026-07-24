@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JobSwipe — Swipe Your Way to a Job</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#1a1e33; --panel2:#232849; --text:#eef0ff; --muted:#9aa0c3;
+    --accent:#7c5cff; --accent2:#4dd0e1; --yes:#2ecc71; --no:#ff5a5f; --gold:#ffcf6e;
+    --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%, #2b2f5e 0%, var(--bg) 55%);
+    color:var(--text); min-height:100dvh; display:flex; flex-direction:column;
+    -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px 8px;gap:10px;
+  }
+  .logo{font-weight:800;font-size:20px;letter-spacing:.3px}
+  .logo span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  nav{display:flex;gap:4px;background:var(--panel);border-radius:999px;padding:4px;margin:0 14px 10px;overflow-x:auto}
+  nav button{
+    flex:1;border:0;background:transparent;color:var(--muted);padding:9px 10px;border-radius:999px;
+    font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;
+  }
+  nav button.active{background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.4)}
+  main{flex:1;display:flex;flex-direction:column;padding:0 14px 18px;max-width:560px;width:100%;margin:0 auto}
+  section{display:none;flex:1;flex-direction:column}
+  section.active{display:flex}
+
+  /* ---------- swipe view ---------- */
+  .statusbar{font-size:12px;color:var(--muted);text-align:center;padding:4px 0 10px;min-height:22px}
+  .statusbar b{color:var(--accent2)}
+  .deck{position:relative;flex:1;min-height:420px;max-height:600px;touch-action:pan-x}
+  .card{
+    position:absolute;inset:0;background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+    will-change:transform;user-select:none;
+  }
+  .card .src{display:flex;justify-content:space-between;align-items:center}
+  .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(124,92,255,.18);color:#b7a6ff;letter-spacing:.4px;text-transform:uppercase}
+  .posted{font-size:11px;color:var(--muted)}
+  .card h2{font-size:21px;line-height:1.25;margin-top:2px}
+  .company{font-size:15px;color:var(--accent2);font-weight:600}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .chip{font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);padding:4px 10px;border-radius:999px;color:#cfd3ef}
+  .chip.salary{background:rgba(255,207,110,.14);color:var(--gold);border-color:rgba(255,207,110,.25);font-weight:700}
+  .desc{
+    font-size:13.5px;line-height:1.55;color:#c6cae6;overflow-y:auto;flex:1;margin-top:4px;
+    padding-right:4px;-webkit-overflow-scrolling:touch;
+  }
+  .desc::-webkit-scrollbar{width:4px}
+  .desc::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
+  .applylink{font-size:12.5px;color:var(--accent2);text-decoration:none;font-weight:600}
+  .stamp{
+    position:absolute;top:26px;font-size:30px;font-weight:900;letter-spacing:2px;padding:6px 16px;
+    border:4px solid;border-radius:10px;opacity:0;transform:rotate(-14deg);pointer-events:none;
+  }
+  .stamp.like{left:18px;color:var(--yes);border-color:var(--yes)}
+  .stamp.nope{right:18px;color:var(--no);border-color:var(--no);transform:rotate(14deg)}
+  .actions{display:flex;justify-content:center;gap:22px;padding:16px 0 4px}
+  .actions button{
+    width:64px;height:64px;border-radius:50%;border:0;font-size:26px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:transform .12s;
+  }
+  .actions button:active{transform:scale(.9)}
+  .btn-no{background:linear-gradient(135deg,#3a2030,#2a1622);color:var(--no);border:1px solid rgba(255,90,95,.4)}
+  .btn-yes{background:linear-gradient(135deg,#15342a,#0f2a1f);color:var(--yes);border:1px solid rgba(46,204,113,.4)}
+  .btn-undo{width:48px;height:48px;font-size:18px;background:var(--panel);color:var(--muted);align-self:center;border:1px solid rgba(255,255,255,.1)}
+  .hint{text-align:center;font-size:11.5px;color:var(--muted);padding-bottom:2px}
+  .empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;text-align:center;color:var(--muted);padding:30px;
+  }
+  .empty h3{color:var(--text);font-size:18px}
+  .primary{
+    background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff;border:0;padding:12px 22px;
+    border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(124,92,255,.4);
+  }
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text);padding:10px 18px;border-radius:12px;font-size:13px;cursor:pointer}
+
+  /* ---------- saved ---------- */
+  .savedlist{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+  .saveditem{background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px}
+  .saveditem h4{font-size:15px;margin-bottom:2px}
+  .saveditem .sub{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .saveditem .row{display:flex;gap:8px;flex-wrap:wrap}
+  .mini{font-size:12px;padding:7px 12px;border-radius:9px;border:0;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+  .mini.apply{background:linear-gradient(90deg,var(--accent),#5d7bff);color:#fff}
+  .mini.mail{background:rgba(77,208,225,.15);color:var(--accent2);border:1px solid rgba(77,208,225,.3)}
+  .mini.del{background:rgba(255,90,95,.12);color:var(--no);border:1px solid rgba(255,90,95,.3)}
+
+  /* ---------- boards ---------- */
+  .boards{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+  .board{background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+  .board:active{background:var(--panel2)}
+  .board .b-name{font-weight:700;font-size:14.5px}
+  .board .b-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .board .arrow{color:var(--accent2);font-size:18px}
+  .grouplabel{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:14px 2px 2px}
+
+  /* ---------- settings ---------- */
+  form{display:flex;flex-direction:column;gap:14px;padding:10px 2px 30px}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:#cfd3ef;margin-bottom:5px}
+  .field .note{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .field .note a{color:var(--accent2)}
+  input,select{
+    width:100%;background:var(--panel);border:1px solid rgba(255,255,255,.12);color:var(--text);
+    padding:11px 12px;border-radius:11px;font-size:14px;outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:12px;border-radius:11px;border:1px solid rgba(255,255,255,.12)}
+  .switch label{font-size:13.5px;font-weight:600}
+  .switch input{width:auto;transform:scale(1.4);accent-color:var(--accent)}
+  fieldset{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+  legend{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);padding:0 6px}
+
+  /* toast */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:#2b2f55;color:#fff;padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;
+    box-shadow:var(--shadow);transition:transform .3s;z-index:99;max-width:90vw;text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.ok{border-left:4px solid var(--yes)}
+  #toast.err{border-left:4px solid var(--no)}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Job<span>Swipe</span> 🧠</div>
+  <div class="statusbar" id="topStatus"></div>
+</header>
+
+<nav>
+  <button data-tab="swipe" class="active">🔥 Swipe</button>
+  <button data-tab="saved">💚 Saved <span id="savedCount"></span></button>
+  <button data-tab="boards">🌐 Boards</button>
+  <button data-tab="settings">⚙️ Settings</button>
+</nav>
+
+<main>
+  <!-- SWIPE -->
+  <section id="view-swipe" class="active">
+    <div class="statusbar" id="fetchStatus"></div>
+    <div class="deck" id="deck">
+      <div class="empty" id="emptyState">
+        <h3>Welcome to JobSwipe 👋</h3>
+        <p>Set your preferences, then hit <b>Find Jobs</b>.<br>Swipe right ❤️ to get the job emailed to you.<br>Swipe left ✖️ to pass — you won't see it again.</p>
+        <button class="primary" id="btnFind">🔎 Find Jobs</button>
+        <button class="ghost" id="btnGoSettings">Set preferences first</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-no" id="btnNo" title="Pass (left arrow)">✖️</button>
+      <button class="btn-undo" id="btnUndo" title="Undo last swipe">↩️</button>
+      <button class="btn-yes" id="btnYes" title="Interested — email me (right arrow)">❤️</button>
+    </div>
+    <div class="hint">Swipe or use ← → arrow keys · ❤️ = emailed to you + saved</div>
+  </section>
+
+  <!-- SAVED -->
+  <section id="view-saved">
+    <div class="savedlist" id="savedList"></div>
+  </section>
+
+  <!-- BOARDS -->
+  <section id="view-boards">
+    <div class="statusbar">Direct searches on niche & major boards, pre-filled from your preferences</div>
+    <div class="boards" id="boardsList"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings">
+    <form id="prefsForm">
+      <fieldset>
+        <legend>Search preferences</legend>
+        <div class="field">
+          <label for="pKeywords">Keywords / position</label>
+          <input id="pKeywords" placeholder="e.g. psychologist, CBT therapist, mental health">
+          <div class="note">Separate alternatives with commas — each is searched.</div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pIndustry">Industry</label>
+            <select id="pIndustry">
+              <option value="psychology">Psychology & Mental Health</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="social-work">Social Work</option>
+              <option value="research">Research / Academia</option>
+              <option value="hr">HR & People</option>
+              <option value="tech">Tech</option>
+              <option value="engineering">Engineering</option>
+              <option value="other">Other / General</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pLevel">Seniority</label>
+            <select id="pLevel">
+              <option value="">Any level</option>
+              <option value="assistant">Assistant / Entry</option>
+              <option value="graduate">Graduate / Trainee</option>
+              <option value="senior">Senior</option>
+              <option value="lead">Lead / Principal</option>
+              <option value="director">Head / Director</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pCountry">Country</label>
+            <select id="pCountry">
+              <option value="gb">United Kingdom</option>
+              <option value="us">United States</option>
+              <option value="au">Australia</option>
+              <option value="ca">Canada</option>
+              <option value="nz">New Zealand</option>
+              <option value="ie">Ireland</option>
+              <option value="de">Germany</option>
+              <option value="nl">Netherlands</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pLocation">City / area</label>
+            <input id="pLocation" placeholder="e.g. Manchester">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pSalary">Minimum salary</label>
+            <input id="pSalary" type="number" min="0" step="1000" placeholder="e.g. 30000">
+          </div>
+          <div class="field">
+            <label for="pDistance">Distance (km)</label>
+            <input id="pDistance" type="number" min="0" step="5" placeholder="e.g. 30">
+          </div>
+        </div>
+        <div class="switch"><label for="pFullTime">Full-time only</label><input type="checkbox" id="pFullTime"></div>
+        <div class="switch"><label for="pRemote">Include remote-job boards</label><input type="checkbox" id="pRemote" checked></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Email on right-swipe (EmailJS)</legend>
+        <div class="field">
+          <label for="pEmail">Send job emails to</label>
+          <input id="pEmail" type="email" placeholder="you@example.com">
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="ejsService">EmailJS Service ID</label><input id="ejsService" placeholder="service_xxxxxxx"></div>
+          <div class="field"><label for="ejsTemplate">EmailJS Template ID</label><input id="ejsTemplate" placeholder="template_xxxxxxx"></div>
+        </div>
+        <div class="field">
+          <label for="ejsKey">EmailJS Public Key</label>
+          <input id="ejsKey" placeholder="AbCdEfGh123456789">
+          <div class="note">Free at <a href="https://www.emailjs.com" target="_blank" rel="noopener">emailjs.com</a> (200 emails/month). Full setup steps are in the README. Without this, right-swipes still save the job and offer a mail-app fallback.</div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Job source API keys</legend>
+        <div class="grid2">
+          <div class="field"><label for="adzId">Adzuna App ID</label><input id="adzId" placeholder="12345678"></div>
+          <div class="field"><label for="adzKey">Adzuna App Key</label><input id="adzKey" placeholder="abcdef1234567890"></div>
+        </div>
+        <div class="field">
+          <div class="note">Adzuna is the main engine — it aggregates listings from thousands of boards. Free key at <a href="https://developer.adzuna.com" target="_blank" rel="noopener">developer.adzuna.com</a>.</div>
+        </div>
+        <div class="field">
+          <label for="joobleKey">Jooble API key (optional)</label>
+          <input id="joobleKey" placeholder="xxxxxxxx-xxxx-xxxx">
+          <div class="note">Optional second aggregator — free key at <a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a>. The Muse & Remotive need no key and are always on.</div>
+        </div>
+      </fieldset>
+
+      <button class="primary" type="submit">💾 Save preferences</button>
+      <button class="ghost" type="button" id="btnReset">Reset seen jobs (show everything again)</button>
+    </form>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+"use strict";
+/* =============== JobSwipe =============== */
+
+const LS = { prefs:"js_prefs_v1", seen:"js_seen_v1", saved:"js_saved_v1" };
+const store = {
+  get(k,f){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; }catch(e){ return f; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+const DEFAULT_PREFS = {
+  keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
+  salary:"", distance:"", fullTime:false, remote:true,
+  email:"", ejsService:"", ejsTemplate:"", ejsKey:"",
+  adzId:"", adzKey:"", joobleKey:""
+};
+
+let prefs   = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
+let seen    = new Set(store.get(LS.seen, []));
+let saved   = store.get(LS.saved, []);
+let queue   = [];          // jobs not yet swiped
+let history = [];          // for undo: {job, dir}
+let fetching = false;
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+function stripHtml(s){ const d=document.createElement("div"); d.innerHTML=s||""; return (d.textContent||"").replace(/\s+/g," ").trim(); }
+function toast(msg, cls){
+  const t=$("#toast"); t.className=cls||""; t.innerHTML=msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"), 3200);
+}
+function jobKey(j){ return (j.title+"|"+j.company).toLowerCase().replace(/[^a-z0-9|]/g,""); }
+function timeAgo(iso){
+  if(!iso) return "";
+  const days = Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+  if(isNaN(days)) return "";
+  if(days<=0) return "today"; if(days===1) return "yesterday";
+  if(days<30) return days+"d ago"; return Math.floor(days/30)+"mo ago";
+}
+function fmtSalary(min,max,cur){
+  const sym = {gb:"£",us:"$",au:"A$",ca:"C$",nz:"NZ$",ie:"€",de:"€",nl:"€"}[prefs.country]||"";
+  const f = n => sym + Math.round(n).toLocaleString();
+  if(min&&max&&Math.round(min)!==Math.round(max)) return f(min)+" – "+f(max);
+  if(min) return f(min)+"+"; if(max) return "up to "+f(max); return "";
+}
+function keywordList(){ return prefs.keywords.split(",").map(s=>s.trim()).filter(Boolean); }
+
+/* ---------- job sources ---------- */
+/* Every adapter resolves to an array of normalized jobs:
+   {id,title,company,location,salary,url,description,posted,source,type} */
+
+async function srcAdzuna(){
+  if(!prefs.adzId || !prefs.adzKey) return {name:"Adzuna", skipped:"no key", jobs:[]};
+  const kw = keywordList()[0] || "";
+  const what = (kw + " " + (prefs.level||"")).trim();
+  const p = new URLSearchParams({
+    app_id:prefs.adzId, app_key:prefs.adzKey, results_per_page:"40",
+    what, "content-type":"application/json"
+  });
+  if(prefs.location) p.set("where", prefs.location);
+  if(prefs.distance) p.set("distance", prefs.distance);
+  if(prefs.salary)   p.set("salary_min", prefs.salary);
+  if(prefs.fullTime) p.set("full_time","1");
+  const r = await fetch(`https://api.adzuna.com/v1/api/jobs/${prefs.country}/search/1?${p}`);
+  if(!r.ok) throw new Error("Adzuna HTTP "+r.status);
+  const d = await r.json();
+  return {name:"Adzuna", jobs:(d.results||[]).map(j=>({
+    id:"adz_"+j.id, title:j.title?.replace(/<[^>]+>/g,"")||"Untitled",
+    company:j.company?.display_name||"Unknown company",
+    location:j.location?.display_name||"", salary:fmtSalary(j.salary_min,j.salary_max),
+    url:j.redirect_url, description:stripHtml(j.description),
+    posted:j.created, source:"Adzuna", type:j.contract_time==="full_time"?"Full-time":(j.contract_time==="part_time"?"Part-time":"")
+  }))};
+}
+
+async function srcMuse(){
+  const cats = { psychology:"", healthcare:"Healthcare", education:"Education", "social-work":"", research:"Science and Engineering", hr:"HR", tech:"Software Engineering", engineering:"Science and Engineering", other:"" };
+  const p = new URLSearchParams({page:"1"});
+  const cat = cats[prefs.industry];
+  if(cat) p.append("category", cat);
+  const r = await fetch("https://www.themuse.com/api/public/jobs?"+p);
+  if(!r.ok) throw new Error("Muse HTTP "+r.status);
+  const d = await r.json();
+  const kws = keywordList().map(k=>k.toLowerCase());
+  let jobs = (d.results||[]).map(j=>({
+    id:"muse_"+j.id, title:j.name, company:j.company?.name||"Unknown company",
+    location:(j.locations||[]).map(l=>l.name).join(" · "), salary:"",
+    url:j.refs?.landing_page, description:stripHtml(j.contents),
+    posted:j.publication_date, source:"The Muse",
+    type:(j.levels||[]).map(l=>l.name).join(", ")
+  }));
+  if(kws.length){
+    const match = jobs.filter(j=>kws.some(k=>(j.title+" "+j.description).toLowerCase().includes(k)));
+    jobs = match.length ? match : [];   // keyless source: only keep keyword matches
+  }
+  return {name:"The Muse", jobs};
+}
+
+async function srcRemotive(){
+  if(!prefs.remote) return {name:"Remotive", skipped:"remote off", jobs:[]};
+  const kw = keywordList()[0]||"";
+  const r = await fetch("https://remotive.com/api/remote-jobs?limit=40&search="+encodeURIComponent(kw));
+  if(!r.ok) throw new Error("Remotive HTTP "+r.status);
+  const d = await r.json();
+  return {name:"Remotive", jobs:(d.jobs||[]).map(j=>({
+    id:"rmt_"+j.id, title:j.title, company:j.company_name||"Unknown company",
+    location:(j.candidate_required_location||"Remote")+" · Remote", salary:j.salary||"",
+    url:j.url, description:stripHtml(j.description),
+    posted:j.publication_date, source:"Remotive", type:j.job_type==="full_time"?"Full-time":(j.job_type||"")
+  }))};
+}
+
+async function srcJooble(){
+  if(!prefs.joobleKey) return {name:"Jooble", skipped:"no key", jobs:[]};
+  const body = { keywords:(keywordList()[0]||"")+(prefs.level?" "+prefs.level:""), location:prefs.location||"" };
+  if(prefs.salary) body.salary = String(prefs.salary);
+  const r = await fetch("https://jooble.org/api/"+encodeURIComponent(prefs.joobleKey), {
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error("Jooble HTTP "+r.status);
+  const d = await r.json();
+  return {name:"Jooble", jobs:(d.jobs||[]).map(j=>({
+    id:"jbl_"+(j.id||jobKey(j)), title:stripHtml(j.title), company:j.company||"Unknown company",
+    location:j.location||"", salary:j.salary||"", url:j.link,
+    description:stripHtml(j.snippet), posted:j.updated, source:"Jooble", type:j.type||""
+  }))};
+}
+
+const SOURCES = [srcAdzuna, srcJooble, srcMuse, srcRemotive];
+
+async function findJobs(){
+  if(fetching) return;
+  fetching = true;
+  $("#fetchStatus").innerHTML = '<span class="spin"></span> Searching job boards…';
+  const results = await Promise.allSettled(SOURCES.map(s=>s()));
+  const parts=[]; let fresh=[];
+  results.forEach(res=>{
+    if(res.status==="fulfilled"){
+      const {name, jobs, skipped} = res.value;
+      if(skipped){ parts.push(name+": —"); return; }
+      parts.push(name+": "+jobs.length);
+      fresh = fresh.concat(jobs);
+    } else {
+      const msg = String(res.reason&&res.reason.message||res.reason);
+      parts.push((msg.match(/Adzuna|Muse|Remotive|Jooble/)||["a source"])[0]+": ✗");
+    }
+  });
+  // dedupe by id and by title+company, drop already-seen and already-queued
+  const inQueue = new Set(queue.map(j=>j.id)), keys = new Set(queue.map(jobKey));
+  const before = fresh.length;
+  fresh = fresh.filter(j=>{
+    if(!j.url || seen.has(j.id) || inQueue.has(j.id) || keys.has(jobKey(j))) return false;
+    keys.add(jobKey(j)); inQueue.add(j.id); return true;
+  });
+  // salary floor for sources that can't filter server-side is not parseable reliably; leave to user
+  fresh.sort((a,b)=>new Date(b.posted||0)-new Date(a.posted||0));
+  queue = queue.concat(fresh);
+  fetching = false;
+  const keyless = !prefs.adzId && !prefs.joobleKey;
+  $("#fetchStatus").innerHTML = `<b>${queue.length}</b> new jobs · ${parts.join(" · ")}` +
+    (keyless ? ' · <span style="color:var(--gold)">add an Adzuna key in Settings for far more results</span>' : "");
+  if(before && !fresh.length && !queue.length) toast("Found jobs, but you've already swiped them all. Try broader keywords or Reset seen jobs.", "err");
+  renderDeck();
+}
+
+/* ---------- deck rendering & swiping ---------- */
+function renderDeck(){
+  const deck = $("#deck");
+  deck.querySelectorAll(".card").forEach(c=>c.remove());
+  const empty = $("#emptyState");
+  if(!queue.length){
+    empty.style.display="flex";
+    $("#emptyState h3").textContent = seen.size ? "No more jobs right now" : "Welcome to JobSwipe 👋";
+    return;
+  }
+  empty.style.display="none";
+  // stack the next 3, topmost last in DOM
+  queue.slice(0,3).reverse().forEach((job,i,arr)=>{
+    const top = i===arr.length-1;
+    const el = document.createElement("div");
+    el.className="card"; el.dataset.id=job.id;
+    const depth = arr.length-1-i;
+    el.style.transform = `translateY(${depth*10}px) scale(${1-depth*0.035})`;
+    el.style.zIndex = 10-depth;
+    el.innerHTML = `
+      <div class="src"><span class="badge">${esc(job.source)}</span><span class="posted">${esc(timeAgo(job.posted))}</span></div>
+      <h2>${esc(job.title)}</h2>
+      <div class="company">${esc(job.company)}</div>
+      <div class="meta">
+        ${job.location?`<span class="chip">📍 ${esc(job.location)}</span>`:""}
+        ${job.salary?`<span class="chip salary">💰 ${esc(job.salary)}</span>`:""}
+        ${job.type?`<span class="chip">⏰ ${esc(job.type)}</span>`:""}
+      </div>
+      <div class="desc">${esc(job.description||"No description provided — open the listing for details.")}</div>
+      <a class="applylink" href="${esc(job.url)}" target="_blank" rel="noopener">🔗 View full listing</a>
+      <div class="stamp like">LIKE</div>
+      <div class="stamp nope">NOPE</div>`;
+    deck.appendChild(el);
+    if(top) attachDrag(el, job);
+  });
+  if(queue.length<5 && !fetching && seen.size) { /* soft prompt only */ }
+}
+
+function attachDrag(el, job){
+  let sx=0, sy=0, dx=0, dy=0, dragging=false;
+  const like=el.querySelector(".stamp.like"), nope=el.querySelector(".stamp.nope");
+  function down(e){
+    if(e.target.closest("a")||e.target.closest(".desc")) { /* allow scrolling desc & links unless horizontal */ }
+    dragging=true; sx=e.clientX; sy=e.clientY; dx=dy=0;
+    el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    el.style.transition="none";
+  }
+  function move(e){
+    if(!dragging) return;
+    dx=e.clientX-sx; dy=e.clientY-sy;
+    el.style.transform=`translate(${dx}px,${dy*0.4}px) rotate(${dx*0.06}deg)`;
+    like.style.opacity = Math.min(dx/90,1);
+    nope.style.opacity = Math.min(-dx/90,1);
+  }
+  function up(){
+    if(!dragging) return; dragging=false;
+    if(dx>110){ flyOff(el, 1); swipe(1); }
+    else if(dx<-110){ flyOff(el, -1); swipe(-1); }
+    else {
+      el.style.transition="transform .25s"; el.style.transform="";
+      like.style.opacity=0; nope.style.opacity=0;
+    }
+  }
+  el.addEventListener("pointerdown", down);
+  el.addEventListener("pointermove", move);
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+}
+
+function flyOff(el, dir){
+  el.style.transition="transform .4s ease-in, opacity .4s";
+  el.style.transform=`translate(${dir*(window.innerWidth+200)}px,-40px) rotate(${dir*25}deg)`;
+  el.style.opacity="0";
+}
+
+function swipe(dir){
+  const job = queue.shift();
+  if(!job) return;
+  seen.add(job.id); store.set(LS.seen, [...seen].slice(-4000));
+  history.push({job, dir});
+  if(dir===1) onLike(job);
+  setTimeout(renderDeck, 60);
+  if(queue.length===2 && !fetching) findJobs();   // auto top-up
+}
+
+function swipeByButton(dir){
+  const top=$("#deck .card:last-of-type");
+  if(!top||!queue.length) return;
+  top.querySelector(dir===1?".stamp.like":".stamp.nope").style.opacity=1;
+  flyOff(top, dir); swipe(dir);
+}
+
+function undo(){
+  const last=history.pop();
+  if(!last){ toast("Nothing to undo"); return; }
+  seen.delete(last.job.id); store.set(LS.seen,[...seen]);
+  if(last.dir===1){ saved=saved.filter(j=>j.id!==last.job.id); store.set(LS.saved,saved); renderSaved(); }
+  queue.unshift(last.job); renderDeck();
+  toast("↩️ Brought back: "+esc(last.job.title));
+}
+
+/* ---------- like: save + email ---------- */
+function onLike(job){
+  if(!saved.some(j=>j.id===job.id)){ saved.unshift(job); store.set(LS.saved, saved); }
+  renderSaved();
+  sendJobEmail(job);
+}
+
+function emailConfigured(){ return prefs.ejsService && prefs.ejsTemplate && prefs.ejsKey && prefs.email; }
+
+function mailtoFallback(job){
+  const subject = encodeURIComponent("Job match: "+job.title+" @ "+job.company);
+  const body = encodeURIComponent(
+    `${job.title}\n${job.company}\n${job.location}${job.salary?"\nSalary: "+job.salary:""}\n\n`+
+    `${(job.description||"").slice(0,800)}\n\nApply here: ${job.url}\n\n— sent from JobSwipe`);
+  return `mailto:${prefs.email||""}?subject=${subject}&body=${body}`;
+}
+
+async function sendJobEmail(job){
+  if(!emailConfigured()){
+    toast(`💚 Saved. <a href="${mailtoFallback(job)}" style="color:var(--accent2)">Email it to yourself</a> · or set up EmailJS in Settings for automatic emails`);
+    return;
+  }
+  toast('<span class="spin"></span> Saved — emailing you the details…');
+  try{
+    await emailjs.send(prefs.ejsService, prefs.ejsTemplate, {
+      to_email: prefs.email,
+      job_title: job.title,
+      company: job.company,
+      job_location: job.location||"Not specified",
+      salary: job.salary||"Not listed",
+      job_type: job.type||"Not specified",
+      source: job.source,
+      description: (job.description||"").slice(0,1500),
+      apply_url: job.url
+    }, {publicKey: prefs.ejsKey});
+    toast("📧 Emailed you: "+esc(job.title), "ok");
+  }catch(err){
+    console.error(err);
+    toast(`⚠️ Email failed (${esc(err?.text||err?.message||"check EmailJS keys")}) — job is saved in 💚 Saved`, "err");
+  }
+}
+
+/* ---------- saved list ---------- */
+function renderSaved(){
+  $("#savedCount").textContent = saved.length ? "("+saved.length+")" : "";
+  const list=$("#savedList");
+  if(!saved.length){ list.innerHTML='<div class="empty" style="position:static"><h3>No saved jobs yet</h3><p>Swipe right ❤️ on jobs you like and they\'ll collect here (and land in your inbox).</p></div>'; return; }
+  list.innerHTML = saved.map(j=>`
+    <div class="saveditem">
+      <h4>${esc(j.title)}</h4>
+      <div class="sub">${esc(j.company)}${j.location?" · "+esc(j.location):""}${j.salary?" · "+esc(j.salary):""} · <i>${esc(j.source)}</i></div>
+      <div class="row">
+        <a class="mini apply" href="${esc(j.url)}" target="_blank" rel="noopener">Apply ↗</a>
+        <button class="mini mail" data-mail="${esc(j.id)}">Re-email</button>
+        <button class="mini del" data-del="${esc(j.id)}">Remove</button>
+      </div>
+    </div>`).join("");
+}
+$("#savedList").addEventListener("click", e=>{
+  const mail=e.target.closest("[data-mail]"), del=e.target.closest("[data-del]");
+  if(mail){ const j=saved.find(x=>x.id===mail.dataset.mail); if(j) sendJobEmail(j); }
+  if(del){ saved=saved.filter(x=>x.id!==del.dataset.del); store.set(LS.saved,saved); renderSaved(); }
+});
+
+/* ---------- niche boards ---------- */
+function renderBoards(){
+  const kw = encodeURIComponent(keywordList()[0]||"");
+  const loc = encodeURIComponent(prefs.location||"");
+  const uk = prefs.country==="gb";
+  const groups = [];
+
+  if(prefs.industry==="psychology" || prefs.industry==="healthcare" || prefs.industry==="social-work"){
+    groups.push(["Psychology & mental health boards", [
+      ["PsycCareers (APA)","The American Psychological Association's job board", `https://www.psyccareers.com/jobs/?keywords=${kw}`],
+      ["APS Employment Network","Association for Psychological Science jobs", `https://jobs.psychologicalscience.org/jobs/?keywords=${kw}`],
+      ["PsychologyJobs.com","US psychology-specific job board", `https://psychologyjobs.com/?search_keywords=${kw}`],
+      ...(uk?[
+        ["BPS Jobs","British Psychological Society job board", `https://www.jobs.bps.org.uk/searchjobs/?Keywords=${kw}`],
+        ["NHS Jobs","All NHS psychology & mental health vacancies", `https://www.jobs.nhs.uk/candidate/search/results?keyword=${kw}&location=${loc}`],
+      ]:[]),
+      ["HigherEdJobs — Psychology","Academic & university psychology posts", `https://www.higheredjobs.com/faculty/search.cfm?JobCat=143`],
+      ["Psychology Today directory","Practices hiring therapists & psychologists", `https://www.psychologytoday.com`],
+    ]]);
+  }
+  groups.push(["Major boards", [
+    ["Indeed","Largest general job board", uk?`https://uk.indeed.com/jobs?q=${kw}&l=${loc}`:`https://www.indeed.com/jobs?q=${kw}&l=${loc}`],
+    ["LinkedIn Jobs","Roles + your network", `https://www.linkedin.com/jobs/search/?keywords=${kw}&location=${loc}`],
+    ["Glassdoor","Jobs with salary & reviews", `https://www.glassdoor.${uk?"co.uk":"com"}/Job/jobs.htm?sc.keyword=${kw}`],
+    ...(uk?[["Reed","Big UK board", `https://www.reed.co.uk/jobs/${kw?kw+"-jobs":"jobs"}${loc?"-in-"+loc:""}`],
+            ["Totaljobs","Big UK board", `https://www.totaljobs.com/jobs/${kw}${loc?"/in-"+loc:""}`]]:[]),
+    ["Google Jobs","Aggregates everything", `https://www.google.com/search?q=${kw}+jobs+${loc}&ibp=htl;jobs`],
+  ]]);
+
+  $("#boardsList").innerHTML = groups.map(([label, items])=>
+    `<div class="grouplabel">${esc(label)}</div>`+
+    items.map(([n,d,u])=>`
+      <a class="board" href="${esc(u)}" target="_blank" rel="noopener">
+        <span><span class="b-name">${esc(n)}</span><br><span class="b-desc">${esc(d)}</span></span>
+        <span class="arrow">↗</span>
+      </a>`).join("")
+  ).join("");
+}
+
+/* ---------- settings ---------- */
+const FIELDS = {
+  pKeywords:"keywords", pIndustry:"industry", pLevel:"level", pCountry:"country", pLocation:"location",
+  pSalary:"salary", pDistance:"distance", pFullTime:"fullTime", pRemote:"remote",
+  pEmail:"email", ejsService:"ejsService", ejsTemplate:"ejsTemplate", ejsKey:"ejsKey",
+  adzId:"adzId", adzKey:"adzKey", joobleKey:"joobleKey"
+};
+function loadForm(){
+  for(const [id,key] of Object.entries(FIELDS)){
+    const el=document.getElementById(id);
+    if(el.type==="checkbox") el.checked=!!prefs[key]; else el.value=prefs[key]??"";
+  }
+}
+$("#prefsForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  for(const [id,key] of Object.entries(FIELDS)){
+    const el=document.getElementById(id);
+    prefs[key]= el.type==="checkbox" ? el.checked : el.value.trim();
+  }
+  store.set(LS.prefs, prefs);
+  $("#topStatus").textContent="";
+  if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
+  toast("💾 Preferences saved","ok");
+  queue=[]; renderBoards(); switchTab("swipe"); findJobs();
+});
+$("#btnReset").addEventListener("click", ()=>{
+  seen=new Set(); store.set(LS.seen,[]); queue=[]; history=[];
+  toast("Seen list cleared — all jobs can appear again","ok"); renderDeck();
+});
+
+/* ---------- tabs & keys ---------- */
+function switchTab(name){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("active", s.id==="view-"+name));
+  if(name==="settings") loadForm();
+  if(name==="boards") renderBoards();
+}
+document.querySelector("nav").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(b) switchTab(b.dataset.tab);
+});
+document.addEventListener("keydown", e=>{
+  if(!$("#view-swipe").classList.contains("active")) return;
+  if(e.key==="ArrowRight") swipeByButton(1);
+  if(e.key==="ArrowLeft") swipeByButton(-1);
+});
+$("#btnYes").addEventListener("click", ()=>swipeByButton(1));
+$("#btnNo").addEventListener("click", ()=>swipeByButton(-1));
+$("#btnUndo").addEventListener("click", undo);
+$("#btnFind").addEventListener("click", findJobs);
+$("#btnGoSettings").addEventListener("click", ()=>switchTab("settings"));
+
+/* ---------- boot ---------- */
+if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
+renderSaved(); renderBoards(); renderDeck();
+const hasPrefs = !!store.get(LS.prefs, null);
+if(hasPrefs){ findJobs(); } else { $("#topStatus").textContent="First time? Set your preferences ⚙️"; }
+</script>
+</body>
+</html>
