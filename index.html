@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>JobSwipe — Swipe Your Way to a Job</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JobSwipe">
+<meta name="theme-color" content="#f7f7f8">
 <style>
   :root{
     --bg:#f7f7f8; --panel:#ffffff; --panel2:#ffffff; --text:#18181b; --muted:#8e8e96;
@@ -118,11 +125,24 @@
     width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);
     padding:12px;border-radius:11px;font-size:14px;outline:none;appearance:none;-webkit-appearance:none;
   }
+  select{
+    background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238e8e96' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+  }
   input:focus,select:focus{border-color:var(--text)}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:13px;border-radius:11px;border:1px solid var(--line)}
+  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:13px;border-radius:11px;border:1px solid var(--line);gap:12px}
   .switch label{font-size:13.5px;font-weight:500}
-  .switch input{width:auto;transform:scale(1.3);accent-color:var(--text)}
+  .switch input{
+    appearance:none;-webkit-appearance:none;width:48px;height:28px;min-width:48px;border-radius:999px;
+    background:#d9d9de;border:0;padding:0;margin:0;position:relative;cursor:pointer;transition:background .2s;
+  }
+  .switch input:checked{background:var(--yes)}
+  .switch input::after{
+    content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s;
+  }
+  .switch input:checked::after{transform:translateX(20px)}
   fieldset{border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--panel)}
   legend{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:0 6px}
 
@@ -267,7 +287,7 @@
         </div>
         <div class="field">
           <label for="ejsKey">EmailJS Public Key</label>
-          <input id="ejsKey" placeholder="OFOxgXjvOlBFEdVK-">
+          <input id="ejsKey" placeholder="AbCdEfGh123456789">
           <div class="note">Free at <a href="https://www.emailjs.com" target="_blank" rel="noopener">emailjs.com</a> (200 emails/month). Full setup steps are in the README. Without this, right-swipes still save the job and offer a mail-app fallback.</div>
         </div>
       </fieldset>
@@ -283,7 +303,7 @@
         </div>
         <div class="field">
           <label for="joobleKey">Jooble API key (optional)</label>
-          <input id="joobleKey" placeholder="5cbeb778-f133-4fa3-8d22-abcd8474019a">
+          <input id="joobleKey" placeholder="xxxxxxxx-xxxx-xxxx">
           <div class="note">Optional second aggregator — free key at <a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a>. The Muse & Remotive need no key and are always on.</div>
         </div>
       </fieldset>
@@ -538,12 +558,46 @@ function flyOff(el, dir){
   el.style.opacity="0";
 }
 
+/* ---------- encouragement dept. ---------- */
+const QUIPS = [
+  "Their loss, honestly.",
+  "Rejecting jobs is just self-care with extra steps.",
+  "Somewhere out there, a job is swiping right on you too.",
+  "High standards. We respect that.",
+  "That one didn't deserve you anyway.",
+  "Freud would say you're projecting confidence. He'd be right.",
+  "Trust the process. Also trust your gut — it's evidence-based.",
+  "Every 'no' is one card closer to the 'yes'.",
+  "You'd think these jobs would try harder to impress you.",
+  "Statistically speaking, you're crushing it.",
+  "The right role is out there, probably fixing its typos.",
+  "Job hunting is a numbers game, and you're winning the numbers."
+];
+const MILESTONES = {
+  10:"10 jobs reviewed — most people give up at 3. Not you.",
+  25:"25 swipes deep. Your future employer better be grateful.",
+  50:"50! Take a stretch, hydrate, then back to conquering.",
+  100:"100 jobs judged. At this point YOU'RE the hiring manager."
+};
+let swipeCount=0, leftStreak=0;
+function maybeQuip(dir){
+  swipeCount++;
+  leftStreak = dir===-1 ? leftStreak+1 : 0;
+  const delay = dir===1 ? 3600 : 700;   // let the email toast have its moment first
+  if(MILESTONES[swipeCount]){ setTimeout(()=>toast("🎉 "+MILESTONES[swipeCount],"ok"), delay); return; }
+  if(leftStreak===7){ setTimeout(()=>toast("Seven nopes in a row — picky, and rightly so."), delay); return; }
+  if(dir===-1 && Math.random()<0.2){
+    setTimeout(()=>toast(QUIPS[Math.floor(Math.random()*QUIPS.length)]), delay);
+  }
+}
+
 function swipe(dir){
   const job = queue.shift();
   if(!job) return;
   seen.add(job.id); store.set(LS.seen, [...seen].slice(-4000));
   history.push({job, dir});
   if(dir===1) onLike(job);
+  maybeQuip(dir);
   setTimeout(renderDeck, 60);
   if(queue.length===2 && !fetching) findJobs();   // auto top-up
 }
@@ -584,6 +638,10 @@ function mailtoFallback(job){
 async function sendJobEmail(job){
   if(!emailConfigured()){
     toast(`Saved. <a href="${mailtoFallback(job)}">Email it to yourself</a> — or finish EmailJS setup in Settings for automatic emails`);
+    return;
+  }
+  if(typeof emailjs === "undefined"){
+    toast(`Saved. <a href="${mailtoFallback(job)}">Email it to yourself</a> — email service couldn't load (check connection)`);
     return;
   }
   toast('<span class="spin"></span> Saved — emailing you the details…');
