@@ -267,7 +267,7 @@
         </div>
         <div class="field">
           <label for="ejsKey">EmailJS Public Key</label>
-          <input id="ejsKey" placeholder="AbCdEfGh123456789">
+          <input id="ejsKey" placeholder="OFOxgXjvOlBFEdVK-">
           <div class="note">Free at <a href="https://www.emailjs.com" target="_blank" rel="noopener">emailjs.com</a> (200 emails/month). Full setup steps are in the README. Without this, right-swipes still save the job and offer a mail-app fallback.</div>
         </div>
       </fieldset>
@@ -283,7 +283,7 @@
         </div>
         <div class="field">
           <label for="joobleKey">Jooble API key (optional)</label>
-          <input id="joobleKey" placeholder="xxxxxxxx-xxxx-xxxx">
+          <input id="joobleKey" placeholder="5cbeb778-f133-4fa3-8d22-abcd8474019a">
           <div class="note">Optional second aggregator — free key at <a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a>. The Muse & Remotive need no key and are always on.</div>
         </div>
       </fieldset>
@@ -310,8 +310,8 @@ const store = {
 const DEFAULT_PREFS = {
   keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
   salary:"", distance:"", fullTime:false, remote:true,
-  email:"", ejsService:"service_na5yeqp", ejsTemplate:"template_nql1yql", ejsKey:"",
-  adzId:"35c8d5d9", adzKey:"11991a9bd1fcb5b2da80c34892a55b55", joobleKey:""
+  email:"", ejsService:"service_na5yeqp", ejsTemplate:"template_nql1yql", ejsKey:"OFOxgXjvOlBFEdVK-",
+  adzId:"35c8d5d9", adzKey:"11991a9bd1fcb5b2da80c34892a55b55", joobleKey:"5cbeb778-f133-4fa3-8d22-abcd8474019a"
 };
 
 let prefs   = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
