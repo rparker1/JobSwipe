@@ -78,6 +78,14 @@ ok(!seniorityConflicts("Assistant Psychologist", "graduate"),  "assistant counts
 ok(!seniorityConflicts("Clinical Psychologist", "graduate"),   "unmarked title is kept");
 ok(!seniorityConflicts("Anything at all", ""),                 "no level set -> never conflicts");
 ok(seniorityConflicts("Trainee Psychologist", "director"),     "trainee vs director");
+// entry-level tiers must behave symmetrically in BOTH directions
+ok(!seniorityConflicts("Graduate Mental Health Worker", "assistant"), "graduate title kept under Assistant");
+ok(!seniorityConflicts("Assistant Psychologist", "graduate"),         "assistant title kept under Graduate");
+ok(!seniorityConflicts("Junior Therapist", "graduate"),               "junior title kept under Graduate");
+ok(!seniorityConflicts("Entry-Level Research Assistant", "graduate"), "entry-level kept under Graduate");
+// and an unmarked title is kept at EVERY level — this is by design, not a bug
+["assistant","graduate","senior","lead","director"].forEach(l =>
+  ok(!seniorityConflicts("Clinical Psychologist", l), `unmarked title kept under ${l}`));
 
 /* ---------- contract work is not full-time ---------- */
 ok(looksNotFullTime({title:"Senior Developer", type:"contract"}), "contract");
