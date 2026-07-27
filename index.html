@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JobSwipe — Swipe Your Way to a Job</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JobSwipe">
+<meta name="theme-color" content="#f7f7f8">
+<style>
+  :root{
+    --bg:#f7f7f8; --panel:#ffffff; --text:#18181b; --muted:#8e8e96;
+    --line:#e6e6ea; --yes:#16a34a; --no:#dc2626; --gold:#a16207;
+    --radius:20px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;
+    -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  }
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px;gap:10px}
+  .logo{font-weight:700;font-size:19px;letter-spacing:-.4px}
+  .logo span{color:var(--muted);font-weight:500}
+
+  /* ---------- location pill ---------- */
+  #locPill{
+    display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--text);
+    cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04);max-width:62vw;
+  }
+  #locPill .flag{font-size:14px;line-height:1}
+  #locPill .where{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #locPill .edit{color:var(--muted);font-weight:500;font-size:11px}
+  #locPill:active{background:#f4f4f5}
+
+  nav{display:flex;gap:2px;background:#ececef;border-radius:12px;padding:3px;margin:0 16px 14px}
+  nav button{
+    flex:1;border:0;background:transparent;color:var(--muted);padding:9px 8px;border-radius:10px;
+    font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;letter-spacing:-.1px;
+  }
+  nav button.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  main{flex:1;display:flex;flex-direction:column;padding:0 14px 18px;max-width:560px;width:100%;margin:0 auto}
+  section{display:none;flex:1;flex-direction:column}
+  section.active{display:flex}
+
+  /* ---------- swipe view ---------- */
+  .statusbar{font-size:12px;color:var(--muted);text-align:center;padding:4px 0 8px;min-height:22px;line-height:1.65}
+  .statusbar b{color:var(--text)}
+  .statusbar .drop{color:var(--gold)}
+  #filterReport{
+    font-size:11.5px;color:var(--muted);text-align:center;padding:0 0 8px;line-height:1.7;
+    display:none;
+  }
+  #filterReport.show{display:block}
+  #filterReport .r{
+    display:inline-block;background:#fffbeb;border:1px solid #fde68a;color:#92400e;
+    border-radius:999px;padding:3px 9px;margin:2px 3px;font-weight:600;
+  }
+  #filterReport .none{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+
+  .deck{position:relative;flex:1;min-height:420px;max-height:600px;touch-action:pan-x}
+  .card{
+    position:absolute;inset:0;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:24px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+    will-change:transform;user-select:none;
+  }
+  .card .src{display:flex;justify-content:space-between;align-items:center}
+  .badge{font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#f4f4f5;color:var(--muted);letter-spacing:.6px;text-transform:uppercase}
+  .posted{font-size:11.5px;color:var(--muted)}
+  .card h2{font-size:22px;line-height:1.25;margin-top:4px;letter-spacing:-.5px;font-weight:700}
+  .company{font-size:15px;color:var(--text);font-weight:500}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{font-size:12px;background:#f4f4f5;border:1px solid transparent;padding:5px 11px;border-radius:999px;color:#52525b}
+  .chip.salary{background:#fefce8;color:var(--gold);font-weight:600}
+  .chip.geo{background:#f0f9ff;color:#0369a1;font-weight:600}
+  .chip.geo.foreign{background:#fef2f2;color:#b91c1c}
+  .chip.geo.any{background:#f5f3ff;color:#6d28d9}
+  .chip.agency{background:#fff7ed;color:#c2410c;font-weight:600}
+  .desc{
+    font-size:14px;line-height:1.6;color:#52525b;overflow-y:auto;flex:1;margin-top:6px;
+    padding-right:4px;-webkit-overflow-scrolling:touch;
+  }
+  .desc::-webkit-scrollbar{width:4px}
+  .desc::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+  .cardfoot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .applylink{font-size:13px;color:var(--text);text-decoration:underline;text-underline-offset:3px;font-weight:500}
+  .blockco{
+    background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;
+    padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .blockco:active{background:#fef2f2;color:var(--no)}
+  .stamp{
+    position:absolute;top:28px;font-size:24px;font-weight:800;letter-spacing:3px;padding:6px 16px;
+    border:3px solid;border-radius:8px;opacity:0;transform:rotate(-12deg);pointer-events:none;background:#fff;
+  }
+  .stamp.like{left:20px;color:var(--yes);border-color:var(--yes)}
+  .stamp.nope{right:20px;color:var(--no);border-color:var(--no);transform:rotate(12deg)}
+  .actions{display:flex;justify-content:center;align-items:center;gap:20px;padding:18px 0 6px}
+  .actions button{
+    width:62px;height:62px;border-radius:50%;font-size:24px;cursor:pointer;background:#fff;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:transform .12s;
+    border:1px solid var(--line);
+  }
+  .actions button:active{transform:scale(.9)}
+  .btn-no{color:var(--no)}
+  .btn-yes{color:var(--yes)}
+  .btn-undo{width:44px;height:44px;font-size:16px;color:var(--muted)}
+  .hint{text-align:center;font-size:11.5px;color:var(--muted);padding-bottom:4px}
+  .empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;text-align:center;color:var(--muted);padding:30px;
+  }
+  .empty h3{color:var(--text);font-size:19px;letter-spacing:-.3px}
+  .empty p{font-size:13.5px;line-height:1.6}
+  .primary{background:var(--text);color:#fff;border:0;padding:13px 24px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;font-size:13px;cursor:pointer;font-weight:500}
+
+  /* ---------- saved ---------- */
+  .savedlist{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+  .saveditem{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .saveditem h4{font-size:15px;margin-bottom:2px;letter-spacing:-.2px}
+  .saveditem .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .saveditem .row{display:flex;gap:8px;flex-wrap:wrap}
+  .mini{font-size:12.5px;padding:8px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+  .mini.apply{background:var(--text);color:#fff}
+  .mini.mail{background:#f4f4f5;color:var(--text);border:1px solid var(--line)}
+  .mini.del{background:transparent;color:var(--no);border:1px solid var(--line)}
+  .mini.block{background:transparent;color:var(--muted);border:1px solid var(--line)}
+
+  /* ---------- boards ---------- */
+  .boards{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+  .board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+  .board:active{background:#f4f4f5}
+  .board .b-name{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
+  .board .b-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .board .arrow{color:var(--muted);font-size:16px}
+  .grouplabel{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin:16px 2px 4px}
+
+  /* ---------- settings ---------- */
+  form{display:flex;flex-direction:column;gap:14px;padding:10px 2px 30px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px}
+  .field .note{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .field .note a{color:var(--text)}
+  .field .note.live{color:var(--text);background:#f0f9ff;border-radius:9px;padding:9px 11px;margin-top:7px;font-weight:500;line-height:1.6}
+  input,select{
+    width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:12px;border-radius:11px;font-size:14px;outline:none;appearance:none;-webkit-appearance:none;
+  }
+  select{
+    background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238e8e96' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+  }
+  input:focus,select:focus{border-color:var(--text)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--panel);padding:13px;border-radius:11px;border:1px solid var(--line);gap:12px}
+  .switch label{font-size:13.5px;font-weight:500}
+  .switch .sublabel{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.45}
+  .switch input{
+    appearance:none;-webkit-appearance:none;width:48px;height:28px;min-width:48px;border-radius:999px;
+    background:#d9d9de;border:0;padding:0;margin:0;position:relative;cursor:pointer;transition:background .2s;
+  }
+  .switch input:checked{background:var(--yes)}
+  .switch input::after{
+    content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s;
+  }
+  .switch input:checked::after{transform:translateX(20px)}
+  fieldset{border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--panel)}
+  legend{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:0 6px}
+  .warn{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;border-radius:11px;padding:11px 13px;font-size:12px;line-height:1.55}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tag{
+    display:inline-flex;align-items:center;gap:6px;background:#f4f4f5;border:1px solid var(--line);
+    border-radius:999px;padding:5px 10px;font-size:12px;color:#52525b;
+  }
+  .tag button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0}
+
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--text);color:#fff;padding:13px 20px;border-radius:12px;font-size:13.5px;font-weight:500;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);transition:transform .3s;z-index:99;max-width:90vw;text-align:center;
+  }
+  #toast a{color:#a5f3fc}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.err{background:#7f1d1d}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Job<span>Swipe</span></div>
+  <button id="locPill" type="button" title="Tap to change location">
+    <span class="flag" id="locFlag">🌍</span>
+    <span class="where" id="locWhere">Set location</span>
+    <span class="edit">edit</span>
+  </button>
+</header>
+
+<nav>
+  <button data-tab="swipe" class="active">Swipe</button>
+  <button data-tab="saved">Saved <span id="savedCount"></span></button>
+  <button data-tab="boards">Boards</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<main>
+  <!-- SWIPE -->
+  <section id="view-swipe" class="active">
+    <div class="statusbar" id="fetchStatus"></div>
+    <div id="filterReport"></div>
+    <div class="deck" id="deck">
+      <div class="empty" id="emptyState">
+        <h3>Welcome to JobSwipe</h3>
+        <p id="emptyBody">Set your preferences, then find jobs.<br>Swipe right to get the job emailed to you.<br>Swipe left to pass — you won't see it again.</p>
+        <button class="primary" id="btnFind">Find jobs</button>
+        <button class="ghost" id="btnGoSettings">Set preferences</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-no" id="btnNo" title="Pass (left arrow)">✕</button>
+      <button class="btn-undo" id="btnUndo" title="Undo last swipe">↺</button>
+      <button class="btn-yes" id="btnYes" title="Interested — email me (right arrow)">♥</button>
+    </div>
+    <div class="hint">Swipe or use ← → keys · right = emailed to you + saved</div>
+  </section>
+
+  <!-- SAVED -->
+  <section id="view-saved">
+    <div class="savedlist" id="savedList"></div>
+  </section>
+
+  <!-- BOARDS -->
+  <section id="view-boards">
+    <div class="statusbar" id="boardsStatus"></div>
+    <div class="boards" id="boardsList"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings">
+    <form id="prefsForm">
+      <fieldset>
+        <legend>Location</legend>
+        <div class="grid2">
+          <div class="field">
+            <label for="pCountry">Country</label>
+            <select id="pCountry"></select>
+          </div>
+          <div class="field">
+            <label for="pLocation">City / area</label>
+            <input id="pLocation" placeholder="e.g. Manchester">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pDistance">Distance from that city (km)</label>
+          <input id="pDistance" type="number" min="0" step="5" placeholder="e.g. 30">
+          <div class="note">Adzuna only — the other sources don't expose a radius search, so this genuinely can't be applied to them.</div>
+        </div>
+        <div class="switch">
+          <label for="pStrict">Only show jobs in my country
+            <span class="sublabel">Off shows everything with a country flag on each card — useful for checking the filter is doing what you expect.</span>
+          </label>
+          <input type="checkbox" id="pStrict" checked>
+        </div>
+        <div class="field"><div class="note live" id="countryEcho"></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>What you're looking for</legend>
+        <div class="field">
+          <label for="pKeywords">Keywords / position</label>
+          <input id="pKeywords" placeholder="e.g. psychologist, CBT therapist, mental health">
+          <div class="note" id="kwNote"></div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pIndustry">Industry</label>
+            <select id="pIndustry">
+              <option value="psychology">Psychology &amp; Mental Health</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="social-work">Social Work</option>
+              <option value="research">Research / Academia</option>
+              <option value="hr">HR &amp; People</option>
+              <option value="tech">Tech</option>
+              <option value="engineering">Engineering</option>
+              <option value="other">Other / General</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pLevel">Seniority</label>
+            <select id="pLevel">
+              <option value="">Any level</option>
+              <option value="assistant">Assistant / Entry</option>
+              <option value="graduate">Graduate / Trainee</option>
+              <option value="senior">Senior</option>
+              <option value="lead">Lead / Principal</option>
+              <option value="director">Head / Director</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="pSalary">Minimum salary</label>
+            <input id="pSalary" type="number" min="0" step="1000" placeholder="e.g. 30000">
+          </div>
+          <div class="field">
+            <label for="pMaxAge">Posted within</label>
+            <select id="pMaxAge">
+              <option value="">Any time</option>
+              <option value="3">Last 3 days</option>
+              <option value="7">Last week</option>
+              <option value="14">Last 2 weeks</option>
+              <option value="30">Last month</option>
+            </select>
+          </div>
+        </div>
+        <div class="switch">
+          <label for="pFullTime">Full-time only
+            <span class="sublabel">Applied server-side by Adzuna and re-checked here for every other source.</span>
+          </label>
+          <input type="checkbox" id="pFullTime">
+        </div>
+        <div class="switch">
+          <label for="pRemote">Include remote-job boards
+            <span class="sublabel">Listings that restrict candidates to another country are still hidden while the country filter is on.</span>
+          </label>
+          <input type="checkbox" id="pRemote" checked>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Exclusions</legend>
+        <div class="field">
+          <label for="pBlockKw">Block keywords</label>
+          <input id="pBlockKw" placeholder="e.g. night shift, unpaid, sales, door to door">
+          <div class="note">Comma separated. A job is hidden if any of these appear in its title, company or description. Also sent to Adzuna server-side.</div>
+          <div class="tags" id="blockKwTags"></div>
+        </div>
+        <div class="field">
+          <label for="pBlockCo">Block companies</label>
+          <input id="pBlockCo" placeholder="e.g. Hays, Michael Page">
+          <div class="note">Comma separated, matched loosely on company name. Faster: tap <b>Block</b> on any card and it lands here.</div>
+          <div class="tags" id="blockCoTags"></div>
+        </div>
+        <div class="switch">
+          <label for="pHideAgency">Hide agency listings
+            <span class="sublabel">Detected from the company name and phrases like "our client". Leave off to keep them but see an <b>Agency</b> chip on each card — worth doing for a few searches to check the detection is sane before you trust it.</span>
+          </label>
+          <input type="checkbox" id="pHideAgency">
+        </div>
+        <div class="switch">
+          <label for="pHideNoSalary">Hide jobs with no salary listed
+            <span class="sublabel">A minimum salary can only filter jobs that state one. This decides what happens to the rest.</span>
+          </label>
+          <input type="checkbox" id="pHideNoSalary">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Email on right-swipe (EmailJS)</legend>
+        <div class="field">
+          <label for="pEmail">Send job emails to</label>
+          <input id="pEmail" type="email" placeholder="you@example.com">
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="ejsService">EmailJS Service ID</label><input id="ejsService" placeholder="service_xxxxxxx"></div>
+          <div class="field"><label for="ejsTemplate">EmailJS Template ID</label><input id="ejsTemplate" placeholder="template_xxxxxxx"></div>
+        </div>
+        <div class="field">
+          <label for="ejsKey">EmailJS Public Key</label>
+          <input id="ejsKey" placeholder="AbCdEfGh123456789">
+          <div class="note">Free at <a href="https://www.emailjs.com" target="_blank" rel="noopener">emailjs.com</a> (200 emails/month). Without this, right-swipes still save the job and offer a mail-app fallback.</div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Job source API keys</legend>
+        <div class="warn">
+          Stored in this browser only (localStorage), never written into the page source.
+          Do not paste them back into this file — anything in the HTML is readable by every visitor.
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="adzId">Adzuna App ID</label><input id="adzId" placeholder="12345678"></div>
+          <div class="field"><label for="adzKey">Adzuna App Key</label><input id="adzKey" placeholder="abcdef1234567890"></div>
+        </div>
+        <div class="field">
+          <div class="note">Adzuna is the main engine and the only source that filters by country server-side. Free key at <a href="https://developer.adzuna.com" target="_blank" rel="noopener">developer.adzuna.com</a>.</div>
+        </div>
+        <div class="field">
+          <label for="joobleKey">Jooble API key (optional)</label>
+          <input id="joobleKey" placeholder="xxxxxxxx-xxxx-xxxx">
+          <div class="note">Optional second aggregator — free key at <a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a>. The Muse &amp; Remotive need no key and are always on.</div>
+        </div>
+      </fieldset>
+
+      <button class="primary" type="submit">Save preferences</button>
+      <button class="ghost" type="button" id="btnReset">Reset seen jobs (show everything again)</button>
+    </form>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+"use strict";
+/* =============== JobSwipe =============== */
+
+const LS = { prefs:"js_prefs_v1", seen:"js_seen_v1", saved:"js_saved_v1" };
+const store = {
+  get(k,f){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; }catch(e){ return f; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+const MAX_KW = 3;   // keyword-per-request sources fire one call each; cap the fan-out
+
+/* ---------- countries ---------- */
+const COUNTRIES = {
+  gb: { name:"United Kingdom", short:"UK", flag:"🇬🇧", cur:"£",
+    museLoc:["London, United Kingdom"], region:["europe","emea","eu"],
+    words:["united kingdom","uk","u k","great britain","britain","england","scotland","wales",
+      "northern ireland","london","manchester","birmingham","leeds","glasgow","edinburgh",
+      "liverpool","bristol","sheffield","cardiff","belfast","newcastle","nottingham","leicester",
+      "southampton","brighton","oxford","cambridge","york","coventry","reading","milton keynes"] },
+  us: { name:"United States", short:"US", flag:"🇺🇸", cur:"$",
+    museLoc:[], region:["north america","americas","usa only","us only"],
+    words:["united states","usa","u s a","america","american",
+      "new york","san francisco","los angeles","chicago","boston","seattle","austin","denver",
+      "atlanta","houston","dallas","miami","philadelphia","phoenix","portland","san diego",
+      "washington dc","minneapolis","detroit","charlotte","nashville","baltimore"] },
+  au: { name:"Australia", short:"AU", flag:"🇦🇺", cur:"A$",
+    museLoc:[], region:["apac","oceania","asia pacific"],
+    words:["australia","australian","sydney","melbourne","brisbane","perth","adelaide",
+      "canberra","hobart","darwin","gold coast"] },
+  ca: { name:"Canada", short:"CA", flag:"🇨🇦", cur:"C$",
+    museLoc:[], region:["north america","americas"],
+    words:["canada","canadian","toronto","vancouver","montreal","calgary","ottawa","edmonton",
+      "winnipeg","quebec","halifax"] },
+  nz: { name:"New Zealand", short:"NZ", flag:"🇳🇿", cur:"NZ$",
+    museLoc:[], region:["apac","oceania","asia pacific"],
+    words:["new zealand","auckland","wellington","christchurch","dunedin","tauranga"] },
+  ie: { name:"Ireland", short:"IE", flag:"🇮🇪", cur:"€",
+    museLoc:["Dublin, Ireland"], region:["europe","emea","eu"],
+    words:["ireland","irish","republic of ireland","dublin","cork","galway","limerick","waterford"] },
+  de: { name:"Germany", short:"DE", flag:"🇩🇪", cur:"€",
+    museLoc:["Berlin, Germany"], region:["europe","emea","eu"],
+    words:["germany","german","deutschland","berlin","munich","münchen","hamburg","frankfurt",
+      "cologne","köln","stuttgart","düsseldorf","leipzig","dresden"] },
+  nl: { name:"Netherlands", short:"NL", flag:"🇳🇱", cur:"€",
+    museLoc:["Amsterdam, Netherlands"], region:["europe","emea","eu"],
+    words:["netherlands","dutch","holland","amsterdam","rotterdam","the hague","den haag",
+      "utrecht","eindhoven","groningen"] },
+};
+
+const US_ABBR = new Set(("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO "+
+  "MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC").split(" "));
+const ANYWHERE = ["worldwide","anywhere","global","remote","fully remote","work from home",
+  "distributed","any location","international"];
+
+/* ============================================================
+   FILTER CORE — pure functions, no DOM. Everything the user can
+   control lives here so it can be unit-tested in isolation.
+   ============================================================ */
+
+function normLoc(s){
+  return " " + String(s||"").toLowerCase()
+    .replace(/[.,/()\[\]|·–—-]/g, " ").replace(/\s+/g, " ").trim() + " ";
+}
+function hasWord(hay, w){ return hay.includes(" " + w + " "); }
+
+function countryOf(loc){
+  if(!loc) return null;
+  const raw = String(loc), s = normLoc(raw);
+  const m = raw.match(/,\s*([A-Z]{2})\b/);
+  if(m && US_ABBR.has(m[1])) return "us";
+  for(const [code,c] of Object.entries(COUNTRIES))
+    for(const w of c.words) if(hasWord(s,w)) return code;
+  for(const [code,c] of Object.entries(COUNTRIES))
+    for(const r of c.region) if(hasWord(s,r)) return code;
+  for(const a of ANYWHERE) if(hasWord(s,a)) return "any";
+  return null;
+}
+
+/* Lowest credible annual figure in a salary string, or null if not stated.
+   Hourly/daily rates come out under 1000 and are treated as "not stated"
+   rather than as a very low salary. */
+function parseSalary(v){
+  if(v == null || v === "") return null;
+  if(typeof v === "number") return isFinite(v) && v > 0 ? v : null;
+  const str = String(v).replace(/,/g, "");
+  const nums = [...str.matchAll(/(\d+(?:\.\d+)?)\s*([kK])?/g)]
+    .map(m => parseFloat(m[1]) * (m[2] ? 1000 : 1))
+    .filter(n => n >= 1000);
+  return nums.length ? Math.min(...nums) : null;
+}
+
+const AGENCY_NAME_RE = /\b(recruit\w*|resourcing|staffing|talent|personnel|manpower|agency|agencies|consultanc\w+|headhunt\w*|search\s*&\s*selection|search and selection)\b/i;
+const AGENCY_TEXT_RE = /\b(our client|on behalf of (?:our|a) client|we are recruiting on behalf|my client)\b/i;
+function looksLikeAgency(job){
+  if(AGENCY_NAME_RE.test(job.company || "")) return true;
+  return AGENCY_TEXT_RE.test(job.description || "");
+}
+
+const NOT_FULLTIME_RE = /\b(part[\s-]?time|temporary|temp\b|locum|bank\s|casual|zero[\s-]?hours?|internship|intern\b|volunteer|seasonal)\b/i;
+function looksNotFullTime(job){
+  return NOT_FULLTIME_RE.test((job.type||"") + " " + (job.title||""));
+}
+
+function ageDays(job){
+  if(!job.posted) return null;
+  const t = new Date(job.posted).getTime();
+  if(isNaN(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+function splitList(s){
+  return String(s||"").split(",").map(x=>x.trim()).filter(Boolean);
+}
+
+/* Ordered filter chain. Each test returns true to KEEP.
+   `trusted` means the source already applied the country server-side. */
+const FILTERS = [
+  { key:"country", label:c=>`outside ${c.countryName}`,
+    on:c=>c.strict,
+    test:(j,c)=> c.trusted || j.geo === null || j.geo === "any" || j.geo === c.country },
+
+  { key:"blockCo", label:()=>"blocked company",
+    on:c=>c.blockCo.length,
+    test:(j,c)=>{ const co=(j.company||"").toLowerCase();
+                  return !c.blockCo.some(b=>co.includes(b.toLowerCase())); } },
+
+  { key:"blockKw", label:()=>"blocked keyword",
+    on:c=>c.blockKw.length,
+    test:(j,c)=>{ const hay=((j.title||"")+" "+(j.company||"")+" "+(j.description||"")).toLowerCase();
+                  return !c.blockKw.some(b=>hay.includes(b.toLowerCase())); } },
+
+  { key:"agency", label:()=>"agency listing",
+    on:c=>c.hideAgency,
+    test:(j)=> !j.isAgency },
+
+  { key:"salary", label:c=>`under ${c.cur}${Number(c.salary).toLocaleString()}`,
+    on:c=>c.salary > 0,
+    test:(j,c)=> j.salaryNum == null || j.salaryNum >= c.salary },
+
+  { key:"nosalary", label:()=>"no salary listed",
+    on:c=>c.hideNoSalary,
+    test:(j)=> j.salaryNum != null },
+
+  { key:"fulltime", label:()=>"not full-time",
+    on:c=>c.fullTime,
+    test:(j)=> !looksNotFullTime(j) },
+
+  { key:"age", label:c=>`older than ${c.maxAge} days`,
+    on:c=>c.maxAge > 0,
+    test:(j,c)=>{ const a=ageDays(j); return a === null || a <= c.maxAge; } },
+];
+
+/* Annotate a job with everything the filters read. Idempotent. */
+function annotate(job, forcedGeo){
+  if(job.geo === undefined) job.geo = forcedGeo !== undefined ? forcedGeo : countryOf(job.location);
+  if(job.salaryNum === undefined) job.salaryNum = parseSalary(job.salaryRaw != null ? job.salaryRaw : job.salary);
+  if(job.isAgency === undefined) job.isAgency = looksLikeAgency(job);
+  return job;
+}
+
+/* Returns {kept, drops:{key:count}} — drops is what the UI reports back. */
+function applyFilters(jobs, ctx){
+  const kept = [], drops = {};
+  const active = FILTERS.filter(f => f.on(ctx));
+  outer: for(const job of jobs){
+    for(const f of active){
+      if(!f.test(job, ctx)){ drops[f.key] = (drops[f.key]||0) + 1; continue outer; }
+    }
+    kept.push(job);
+  }
+  return { kept, drops };
+}
+
+function dropLabel(key, ctx){
+  const f = FILTERS.find(x=>x.key===key);
+  return f ? f.label(ctx) : key;
+}
+
+/* ============================================================
+   END FILTER CORE
+   ============================================================ */
+
+/* ---------- prefs ----------
+   No API keys here on purpose: this file is served to the browser, so anything
+   hardcoded below would be public. Keys live in localStorage via Settings. */
+const DEFAULT_PREFS = {
+  keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
+  salary:"", distance:"", maxAge:"", fullTime:false, remote:true, strict:true,
+  blockKw:"", blockCo:"", hideAgency:false, hideNoSalary:false,
+  email:"", ejsService:"", ejsTemplate:"", ejsKey:"",
+  adzId:"", adzKey:"", joobleKey:""
+};
+
+let prefs   = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
+let seen    = new Set(store.get(LS.seen, []));
+let saved   = store.get(LS.saved, []);
+let queue   = [];
+let history = [];
+let fetching = false;
+let lastDrops = {};
+
+const $ = s => document.querySelector(s);
+function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+function stripHtml(s){ const d=document.createElement("div"); d.innerHTML=s||""; return (d.textContent||"").replace(/\s+/g," ").trim(); }
+function toast(msg, cls){
+  const t=$("#toast"); t.className=cls||""; t.innerHTML=msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"), 3200);
+}
+function jobKey(j){ return (j.title+"|"+j.company).toLowerCase().replace(/[^a-z0-9|]/g,""); }
+function timeAgo(iso){
+  const days = ageDays({posted:iso});
+  if(days === null) return "";
+  if(days<=0) return "today"; if(days===1) return "yesterday";
+  if(days<30) return days+"d ago"; return Math.floor(days/30)+"mo ago";
+}
+function cc(){ return COUNTRIES[prefs.country] ? prefs.country : "gb"; }
+function country(){ return COUNTRIES[cc()]; }
+function fmtSalary(min,max){
+  const sym = country().cur, f = n => sym + Math.round(n).toLocaleString();
+  if(min&&max&&Math.round(min)!==Math.round(max)) return f(min)+" – "+f(max);
+  if(min) return f(min)+"+"; if(max) return "up to "+f(max); return "";
+}
+function keywordList(){ return splitList(prefs.keywords); }
+
+/* Build the context the filter chain reads. */
+function filterCtx(trusted){
+  return {
+    trusted: !!trusted,
+    country: cc(),
+    countryName: country().name,
+    cur: country().cur,
+    strict: !!prefs.strict,
+    blockKw: splitList(prefs.blockKw),
+    blockCo: splitList(prefs.blockCo),
+    hideAgency: !!prefs.hideAgency,
+    hideNoSalary: !!prefs.hideNoSalary,
+    salary: Number(prefs.salary) || 0,
+    fullTime: !!prefs.fullTime,
+    maxAge: Number(prefs.maxAge) || 0,
+  };
+}
+
+/* ---------- job sources ---------- */
+
+async function srcAdzuna(){
+  if(!prefs.adzId || !prefs.adzKey) return {name:"Adzuna", skipped:"no key", jobs:[], trusted:true};
+  const kws = keywordList();
+  const p = new URLSearchParams({
+    app_id:prefs.adzId, app_key:prefs.adzKey, results_per_page:"50",
+    "content-type":"application/json"
+  });
+  // FIX: was keywordList()[0] — every keyword is now sent, via what_or.
+  if(kws.length > 1) p.set("what_or", kws.join(" "));
+  else if(kws.length === 1) p.set("what", kws[0]);
+  if(prefs.level)    p.set("what_and", prefs.level);
+  if(prefs.blockKw)  p.set("what_exclude", splitList(prefs.blockKw).join(" "));
+  if(prefs.location) p.set("where", prefs.location);
+  if(prefs.distance) p.set("distance", prefs.distance);
+  if(prefs.salary)   p.set("salary_min", prefs.salary);
+  if(prefs.maxAge)   p.set("max_days_old", prefs.maxAge);
+  if(prefs.fullTime) p.set("full_time","1");
+  const r = await fetch(`https://api.adzuna.com/v1/api/jobs/${cc()}/search/1?${p}`);
+  if(!r.ok) throw new Error("Adzuna HTTP "+r.status);
+  const d = await r.json();
+  return {name:"Adzuna", trusted:true, jobs:(d.results||[]).map(j=>({
+    id:"adz_"+j.id, title:(j.title||"").replace(/<[^>]+>/g,"")||"Untitled",
+    company:j.company?.display_name||"Unknown company",
+    location:j.location?.display_name||"",
+    salary:fmtSalary(j.salary_min,j.salary_max), salaryRaw:j.salary_min ?? j.salary_max ?? null,
+    url:j.redirect_url, description:stripHtml(j.description),
+    posted:j.created, source:"Adzuna", geo:cc(),
+    type:j.contract_time==="full_time"?"Full-time":(j.contract_time==="part_time"?"Part-time":"")
+  }))};
+}
+
+async function srcMuse(){
+  const cats = { psychology:"", healthcare:"Healthcare", education:"Education", "social-work":"",
+                 research:"Science and Engineering", hr:"HR", tech:"Software Engineering",
+                 engineering:"Science and Engineering", other:"" };
+  const p = new URLSearchParams({page:"1"});
+  const cat = cats[prefs.industry];
+  if(cat) p.append("category", cat);
+  // FIX: The Muse was never told where you are.
+  if(prefs.location) p.append("location", prefs.location + ", " + country().name);
+  (country().museLoc || []).forEach(l => p.append("location", l));
+  const r = await fetch("https://www.themuse.com/api/public/jobs?"+p);
+  if(!r.ok) throw new Error("Muse HTTP "+r.status);
+  const d = await r.json();
+  const kws = keywordList().map(k=>k.toLowerCase());
+  let jobs = (d.results||[]).map(j=>({
+    id:"muse_"+j.id, title:j.name, company:j.company?.name||"Unknown company",
+    location:(j.locations||[]).map(l=>l.name).join(" · "), salary:"", salaryRaw:null,
+    url:j.refs?.landing_page, description:stripHtml(j.contents),
+    posted:j.publication_date, source:"The Muse",
+    type:(j.levels||[]).map(l=>l.name).join(", ")
+  }));
+  if(kws.length) jobs = jobs.filter(j=>kws.some(k=>(j.title+" "+j.description).toLowerCase().includes(k)));
+  return {name:"The Muse", jobs};
+}
+
+async function srcRemotive(){
+  if(!prefs.remote) return {name:"Remotive", skipped:"remote off", jobs:[]};
+  // FIX: was one request for keywordList()[0] — now one per keyword, merged.
+  const kws = keywordList().slice(0, MAX_KW);
+  const runs = await Promise.allSettled((kws.length?kws:[""]).map(async kw=>{
+    const r = await fetch("https://remotive.com/api/remote-jobs?limit=40&search="+encodeURIComponent(kw));
+    if(!r.ok) throw new Error("Remotive HTTP "+r.status);
+    const d = await r.json();
+    return (d.jobs||[]).map(j=>({
+      id:"rmt_"+j.id, title:j.title, company:j.company_name||"Unknown company",
+      location:(j.candidate_required_location||"Worldwide")+" · Remote",
+      salary:j.salary||"", salaryRaw:j.salary||null,
+      url:j.url, description:stripHtml(j.description),
+      posted:j.publication_date, source:"Remotive",
+      type:j.job_type==="full_time"?"Full-time":(j.job_type||"")
+    }));
+  }));
+  const ok = runs.filter(r=>r.status==="fulfilled");
+  if(!ok.length) throw new Error("Remotive: all keyword queries failed");
+  return {name:"Remotive", jobs: ok.flatMap(r=>r.value)};
+}
+
+async function srcJooble(){
+  if(!prefs.joobleKey) return {name:"Jooble", skipped:"no key", jobs:[]};
+  // FIX: empty location made Jooble default to US; and only the first keyword was used.
+  const kws = keywordList().slice(0, MAX_KW);
+  const loc = prefs.location ? (prefs.location + ", " + country().name) : country().name;
+  const runs = await Promise.allSettled((kws.length?kws:[""]).map(async kw=>{
+    const body = { keywords:(kw + (prefs.level?" "+prefs.level:"")).trim(), location: loc };
+    if(prefs.salary) body.salary = String(prefs.salary);
+    const r = await fetch("https://jooble.org/api/"+encodeURIComponent(prefs.joobleKey), {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error("Jooble HTTP "+r.status);
+    const d = await r.json();
+    return (d.jobs||[]).map(j=>({
+      id:"jbl_"+(j.id||jobKey(j)), title:stripHtml(j.title), company:j.company||"Unknown company",
+      location:j.location||"", salary:j.salary||"", salaryRaw:j.salary||null, url:j.link,
+      description:stripHtml(j.snippet), posted:j.updated, source:"Jooble", type:j.type||""
+    }));
+  }));
+  const ok = runs.filter(r=>r.status==="fulfilled");
+  if(!ok.length) throw new Error("Jooble: all keyword queries failed");
+  return {name:"Jooble", jobs: ok.flatMap(r=>r.value)};
+}
+
+const SOURCES = [srcAdzuna, srcJooble, srcMuse, srcRemotive];
+const SOURCE_NAMES = ["Adzuna","Jooble","The Muse","Remotive"];
+
+async function findJobs(){
+  if(fetching) return;
+  fetching = true;
+  const c = country();
+  $("#fetchStatus").innerHTML = `<span class="spin"></span> Searching ${esc(c.name)} job boards…`;
+  const results = await Promise.allSettled(SOURCES.map(s=>s()));
+  const parts=[]; let fresh=[]; const drops={};
+
+  results.forEach((res,i)=>{
+    if(res.status!=="fulfilled"){ parts.push(SOURCE_NAMES[i]+": ✗"); return; }
+    const {name, jobs, skipped, trusted} = res.value;
+    if(skipped){ parts.push(name+": —"); return; }
+    jobs.forEach(j => annotate(j));
+    const out = applyFilters(jobs, filterCtx(trusted));
+    for(const k in out.drops) drops[k] = (drops[k]||0) + out.drops[k];
+    const n = jobs.length - out.kept.length;
+    parts.push(name+": "+out.kept.length + (n ? ` <span class="drop">(−${n})</span>` : ""));
+    fresh = fresh.concat(out.kept);
+  });
+
+  const inQueue = new Set(queue.map(j=>j.id)), keys = new Set(queue.map(jobKey));
+  const before = fresh.length;
+  fresh = fresh.filter(j=>{
+    if(!j.url || seen.has(j.id) || inQueue.has(j.id) || keys.has(jobKey(j))) return false;
+    keys.add(jobKey(j)); inQueue.add(j.id); return true;
+  });
+  fresh.sort((a,b)=>new Date(b.posted||0)-new Date(a.posted||0));
+  queue = queue.concat(fresh);
+  fetching = false;
+  lastDrops = drops;
+
+  let status = `${c.flag} <b>${queue.length}</b> ${esc(c.short)} jobs · ${parts.join(" · ")}`;
+  if(!prefs.adzId && !prefs.joobleKey)
+    status += ' · <span class="drop">add an Adzuna key in Settings for far more results</span>';
+  $("#fetchStatus").innerHTML = status;
+  renderFilterReport();
+
+  if(before && !fresh.length && !queue.length)
+    toast("Found jobs, but you've already swiped them all. Try broader keywords or Reset seen jobs.", "err");
+  renderDeck();
+}
+
+/* Show exactly which filter removed what — the whole point of "control". */
+function renderFilterReport(){
+  const el = $("#filterReport"), ctx = filterCtx(false);
+  const entries = Object.entries(lastDrops).filter(([,n])=>n>0);
+  const anyActive = FILTERS.some(f=>f.on(ctx));
+  if(!anyActive){ el.className=""; el.innerHTML=""; return; }
+  el.className = "show";
+  if(!entries.length){
+    el.innerHTML = `<span class="r none">✓ your filters removed nothing this search</span>`;
+    return;
+  }
+  const total = entries.reduce((a,[,n])=>a+n,0);
+  el.innerHTML = `Hidden by your filters (${total}): ` +
+    entries.sort((a,b)=>b[1]-a[1])
+      .map(([k,n])=>`<span class="r">${n} ${esc(dropLabel(k,ctx))}</span>`).join("");
+}
+
+/* ---------- location pill ---------- */
+function renderLocPill(){
+  const c = country(), bits=[c.short];
+  if(prefs.location) bits.push(prefs.location);
+  if(prefs.distance) bits.push("+"+prefs.distance+"km");
+  $("#locFlag").textContent = c.flag;
+  $("#locWhere").textContent = bits.join(" · ");
+  $("#locPill").title = `Searching ${c.name}${prefs.location?" near "+prefs.location:" (whole country)"} — tap to change`;
+}
+
+/* ---------- deck ---------- */
+function geoChip(job){
+  if(job.geo === "any") return '<span class="chip geo any">🌍 Worldwide</span>';
+  const c = COUNTRIES[job.geo];
+  if(!c) return "";
+  return `<span class="chip geo${job.geo!==cc()?" foreign":""}">${c.flag} ${esc(c.short)}</span>`;
+}
+
+function renderDeck(){
+  const deck = $("#deck");
+  deck.querySelectorAll(".card").forEach(c=>c.remove());
+  const empty = $("#emptyState"), c = country();
+  if(!queue.length){
+    empty.style.display="flex";
+    $("#emptyState h3").textContent = seen.size ? "No more "+c.short+" jobs right now" : "Welcome to JobSwipe 👋";
+    if(seen.size) $("#emptyBody").innerHTML =
+      `Searching ${c.flag} <b>${esc(c.name)}</b>${prefs.location?" near "+esc(prefs.location):""}.<br>` +
+      `Try broader keywords, or loosen the exclusions in Settings — the bar above shows what they removed.`;
+    return;
+  }
+  empty.style.display="none";
+  queue.slice(0,3).reverse().forEach((job,i,arr)=>{
+    const top = i===arr.length-1, depth = arr.length-1-i;
+    const el = document.createElement("div");
+    el.className="card"; el.dataset.id=job.id;
+    el.style.transform = `translateY(${depth*10}px) scale(${1-depth*0.035})`;
+    el.style.zIndex = 10-depth;
+    el.innerHTML = `
+      <div class="src"><span class="badge">${esc(job.source)}</span><span class="posted">${esc(timeAgo(job.posted))}</span></div>
+      <h2>${esc(job.title)}</h2>
+      <div class="company">${esc(job.company)}</div>
+      <div class="meta">
+        ${geoChip(job)}
+        ${job.isAgency?'<span class="chip agency">Agency</span>':""}
+        ${job.location?`<span class="chip">${esc(job.location)}</span>`:""}
+        ${job.salary?`<span class="chip salary">${esc(job.salary)}</span>`:'<span class="chip">Salary not listed</span>'}
+        ${job.type?`<span class="chip">${esc(job.type)}</span>`:""}
+      </div>
+      <div class="desc">${esc(job.description||"No description provided — open the listing for details.")}</div>
+      <div class="cardfoot">
+        <a class="applylink" href="${esc(job.url)}" target="_blank" rel="noopener">View full listing →</a>
+        <button type="button" class="blockco" data-block="${esc(job.company)}">Block ${esc(job.company.slice(0,18))}</button>
+      </div>
+      <div class="stamp like">LIKE</div>
+      <div class="stamp nope">NOPE</div>`;
+    deck.appendChild(el);
+    if(top) attachDrag(el);
+  });
+}
+
+/* Block a company from anywhere, then re-filter what's already queued. */
+function blockCompany(name){
+  if(!name) return;
+  const list = splitList(prefs.blockCo);
+  if(list.some(x=>x.toLowerCase()===name.toLowerCase())){ toast(esc(name)+" is already blocked"); return; }
+  list.push(name);
+  prefs.blockCo = list.join(", ");
+  store.set(LS.prefs, prefs);
+  const before = queue.length;
+  const out = applyFilters(queue, filterCtx(false));
+  queue = out.kept;
+  renderDeck(); loadForm();
+  toast(`Blocked <b>${esc(name)}</b> — ${before-queue.length} listing${before-queue.length===1?"":"s"} removed`, "ok");
+}
+$("#deck").addEventListener("click", e=>{
+  const b = e.target.closest("[data-block]");
+  if(b){ e.stopPropagation(); blockCompany(b.dataset.block); }
+});
+
+function attachDrag(el){
+  let sx=0, dx=0, dy=0, dragging=false;
+  const like=el.querySelector(".stamp.like"), nope=el.querySelector(".stamp.nope");
+  el.addEventListener("pointerdown", e=>{
+    if(e.target.closest("button")) return;          // don't start a drag on Block
+    dragging=true; sx=e.clientX; dx=dy=0;
+    el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    el.style.transition="none";
+  });
+  el.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    dx=e.clientX-sx;
+    el.style.transform=`translate(${dx}px,${dy*0.4}px) rotate(${dx*0.06}deg)`;
+    like.style.opacity = Math.min(dx/90,1);
+    nope.style.opacity = Math.min(-dx/90,1);
+  });
+  const up = ()=>{
+    if(!dragging) return; dragging=false;
+    if(dx>110){ flyOff(el, 1); swipe(1); }
+    else if(dx<-110){ flyOff(el, -1); swipe(-1); }
+    else { el.style.transition="transform .25s"; el.style.transform="";
+           like.style.opacity=0; nope.style.opacity=0; }
+  };
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+}
+
+function flyOff(el, dir){
+  el.style.transition="transform .4s ease-in, opacity .4s";
+  el.style.transform=`translate(${dir*(window.innerWidth+200)}px,-40px) rotate(${dir*25}deg)`;
+  el.style.opacity="0";
+}
+
+/* ---------- encouragement dept. ---------- */
+const QUIPS = [
+  "Their loss, honestly.",
+  "Rejecting jobs is just self-care with extra steps.",
+  "Somewhere out there, a job is swiping right on you too.",
+  "High standards. We respect that.",
+  "That one didn't deserve you anyway.",
+  "Freud would say you're projecting confidence. He'd be right.",
+  "Trust the process. Also trust your gut — it's evidence-based.",
+  "Every 'no' is one card closer to the 'yes'.",
+  "You'd think these jobs would try harder to impress you.",
+  "Statistically speaking, you're crushing it.",
+  "The right role is out there, probably fixing its typos.",
+  "Job hunting is a numbers game, and you're winning the numbers."
+];
+const MILESTONES = {
+  10:"10 jobs reviewed — most people give up at 3. Not you.",
+  25:"25 swipes deep. Your future employer better be grateful.",
+  50:"50! Take a stretch, hydrate, then back to conquering.",
+  100:"100 jobs judged. At this point YOU'RE the hiring manager."
+};
+let swipeCount=0, leftStreak=0;
+function maybeQuip(dir){
+  swipeCount++;
+  leftStreak = dir===-1 ? leftStreak+1 : 0;
+  const delay = dir===1 ? 3600 : 700;
+  if(MILESTONES[swipeCount]){ setTimeout(()=>toast("🎉 "+MILESTONES[swipeCount],"ok"), delay); return; }
+  if(leftStreak===7){ setTimeout(()=>toast("Seven nopes in a row — picky, and rightly so."), delay); return; }
+  if(dir===-1 && Math.random()<0.2) setTimeout(()=>toast(QUIPS[Math.floor(Math.random()*QUIPS.length)]), delay);
+}
+
+function swipe(dir){
+  const job = queue.shift();
+  if(!job) return;
+  seen.add(job.id); store.set(LS.seen, [...seen].slice(-4000));
+  history.push({job, dir});
+  if(dir===1) onLike(job);
+  maybeQuip(dir);
+  setTimeout(renderDeck, 60);
+  if(queue.length===2 && !fetching) findJobs();
+}
+function swipeByButton(dir){
+  const top=$("#deck .card:last-of-type");
+  if(!top||!queue.length) return;
+  top.querySelector(dir===1?".stamp.like":".stamp.nope").style.opacity=1;
+  flyOff(top, dir); swipe(dir);
+}
+function undo(){
+  const last=history.pop();
+  if(!last){ toast("Nothing to undo"); return; }
+  seen.delete(last.job.id); store.set(LS.seen,[...seen]);
+  if(last.dir===1){ saved=saved.filter(j=>j.id!==last.job.id); store.set(LS.saved,saved); renderSaved(); }
+  queue.unshift(last.job); renderDeck();
+  toast("Brought back: "+esc(last.job.title));
+}
+
+/* ---------- like: save + email ---------- */
+function onLike(job){
+  if(!saved.some(j=>j.id===job.id)){ saved.unshift(job); store.set(LS.saved, saved); }
+  renderSaved(); sendJobEmail(job);
+}
+function emailConfigured(){ return prefs.ejsService && prefs.ejsTemplate && prefs.ejsKey && prefs.email; }
+function mailtoFallback(job){
+  const subject = encodeURIComponent("Job match: "+job.title+" @ "+job.company);
+  const body = encodeURIComponent(
+    `${job.title}\n${job.company}\n${job.location}${job.salary?"\nSalary: "+job.salary:""}\n\n`+
+    `${(job.description||"").slice(0,800)}\n\nApply here: ${job.url}\n\n— sent from JobSwipe`);
+  return `mailto:${prefs.email||""}?subject=${subject}&body=${body}`;
+}
+async function sendJobEmail(job){
+  if(!emailConfigured()){
+    toast(`Saved. <a href="${mailtoFallback(job)}">Email it to yourself</a> — or finish EmailJS setup in Settings for automatic emails`); return;
+  }
+  if(typeof emailjs === "undefined"){
+    toast(`Saved. <a href="${mailtoFallback(job)}">Email it to yourself</a> — email service couldn't load (check connection)`); return;
+  }
+  toast('<span class="spin"></span> Saved — emailing you the details…');
+  try{
+    await emailjs.send(prefs.ejsService, prefs.ejsTemplate, {
+      to_email: prefs.email, job_title: job.title, company: job.company,
+      job_location: job.location||"Not specified", salary: job.salary||"Not listed",
+      job_type: job.type||"Not specified", source: job.source,
+      description: (job.description||"").slice(0,1500), apply_url: job.url
+    }, {publicKey: prefs.ejsKey});
+    toast("Emailed you: "+esc(job.title), "ok");
+  }catch(err){
+    console.error(err);
+    toast(`Email failed (${esc(err?.text||err?.message||"check EmailJS keys")}) — job kept in Saved`, "err");
+  }
+}
+
+/* ---------- saved list ---------- */
+function renderSaved(){
+  $("#savedCount").textContent = saved.length ? "("+saved.length+")" : "";
+  const list=$("#savedList");
+  if(!saved.length){ list.innerHTML='<div class="empty" style="position:static"><h3>No saved jobs yet</h3><p>Swipe right on jobs you like and they\'ll collect here (and land in your inbox).</p></div>'; return; }
+  list.innerHTML = saved.map(j=>`
+    <div class="saveditem">
+      <h4>${esc(j.title)}</h4>
+      <div class="sub">${esc(j.company)}${j.isAgency?" · <b>Agency</b>":""}${j.location?" · "+esc(j.location):""}${j.salary?" · "+esc(j.salary):""} · <i>${esc(j.source)}</i></div>
+      <div class="row">
+        <a class="mini apply" href="${esc(j.url)}" target="_blank" rel="noopener">Apply ↗</a>
+        <button class="mini mail" data-mail="${esc(j.id)}">Re-email</button>
+        <button class="mini block" data-block="${esc(j.company)}">Block company</button>
+        <button class="mini del" data-del="${esc(j.id)}">Remove</button>
+      </div>
+    </div>`).join("");
+}
+$("#savedList").addEventListener("click", e=>{
+  const mail=e.target.closest("[data-mail]"), del=e.target.closest("[data-del]"), blk=e.target.closest("[data-block]");
+  if(mail){ const j=saved.find(x=>x.id===mail.dataset.mail); if(j) sendJobEmail(j); }
+  if(del){ saved=saved.filter(x=>x.id!==del.dataset.del); store.set(LS.saved,saved); renderSaved(); }
+  if(blk) blockCompany(blk.dataset.block);
+});
+
+/* ---------- niche boards (per country) ---------- */
+const BOARDS = {
+  gb:{ indeed:"uk.indeed.com", glassdoor:"co.uk",
+    national:[
+      ["Reed","One of the largest UK boards",(kw,loc)=>`https://www.reed.co.uk/jobs/${kw?kw+"-jobs":"jobs"}${loc?"-in-"+loc:""}`],
+      ["Totaljobs","Big UK general board",(kw,loc)=>`https://www.totaljobs.com/jobs/${kw}${loc?"/in-"+loc:""}`],
+      ["CV-Library","UK jobs across all sectors",(kw,loc)=>`https://www.cv-library.co.uk/${kw?kw+"-jobs":"jobs"}${loc?"-in-"+loc:""}`]],
+    psych:[
+      ["BPS Jobs","British Psychological Society board",kw=>`https://www.jobs.bps.org.uk/searchjobs/?Keywords=${kw}`],
+      ["NHS Jobs","NHS psychology & mental health vacancies",(kw,loc)=>`https://www.jobs.nhs.uk/candidate/search/results?keyword=${kw}&location=${loc}`],
+      ["CharityJob","Third-sector mental health roles",kw=>`https://www.charityjob.co.uk/jobs?keyword=${kw}`]] },
+  us:{ indeed:"www.indeed.com", glassdoor:"com",
+    national:[
+      ["ZipRecruiter","Large US general board",(kw,loc)=>`https://www.ziprecruiter.com/jobs-search?search=${kw}&location=${loc}`],
+      ["USAJOBS","US federal government roles",(kw,loc)=>`https://www.usajobs.gov/Search/Results?k=${kw}&l=${loc}`]],
+    psych:[
+      ["PsycCareers (APA)","American Psychological Association board",kw=>`https://www.psyccareers.com/jobs/?keywords=${kw}`],
+      ["APS Employment Network","Association for Psychological Science jobs",kw=>`https://jobs.psychologicalscience.org/jobs/?keywords=${kw}`],
+      ["PsychologyJobs.com","US psychology-specific board",kw=>`https://psychologyjobs.com/?search_keywords=${kw}`],
+      ["HigherEdJobs — Psychology","Academic & university psychology posts",()=>`https://www.higheredjobs.com/faculty/search.cfm?JobCat=143`]] },
+  au:{ indeed:"au.indeed.com", glassdoor:"com.au",
+    national:[["Seek","The dominant Australian board",(kw,loc)=>`https://www.seek.com.au/${kw?kw+"-jobs":"jobs"}${loc?"/in-"+loc:""}`]], psych:[] },
+  ca:{ indeed:"ca.indeed.com", glassdoor:"ca",
+    national:[["Job Bank","Government of Canada job board",(kw,loc)=>`https://www.jobbank.gc.ca/jobsearch/jobsearch?searchstring=${kw}&locationstring=${loc}`]], psych:[] },
+  nz:{ indeed:"nz.indeed.com", glassdoor:"co.nz",
+    national:[["Seek NZ","Largest NZ board",(kw,loc)=>`https://www.seek.co.nz/${kw?kw+"-jobs":"jobs"}${loc?"/in-"+loc:""}`],
+      ["Trade Me Jobs","Popular NZ board",kw=>`https://www.trademe.co.nz/a/jobs/search?search_string=${kw}`]], psych:[] },
+  ie:{ indeed:"ie.indeed.com", glassdoor:"ie",
+    national:[["IrishJobs","Large Irish board",(kw,loc)=>`https://www.irishjobs.ie/jobs/${kw}${loc?"/in-"+loc:""}`]], psych:[] },
+  de:{ indeed:"de.indeed.com", glassdoor:"de",
+    national:[["StepStone","Major German board",(kw,loc)=>`https://www.stepstone.de/jobs/${kw}${loc?"/in-"+loc:""}`]], psych:[] },
+  nl:{ indeed:"nl.indeed.com", glassdoor:"nl",
+    national:[["Nationale Vacaturebank","Major Dutch board",kw=>`https://www.nationalevacaturebank.nl/vacature/zoeken?query=${kw}`]], psych:[] },
+};
+
+function renderBoards(){
+  const kw = encodeURIComponent(keywordList()[0]||"");
+  const loc = encodeURIComponent(prefs.location||"");
+  const c = country(), set = BOARDS[cc()] || BOARDS.gb, groups = [];
+  $("#boardsStatus").innerHTML =
+    `${c.flag} Boards for <b>${esc(c.name)}</b>${prefs.location?" · "+esc(prefs.location):""} — pre-filled from your preferences`;
+  if(["psychology","healthcare","social-work"].includes(prefs.industry) && set.psych.length)
+    groups.push([`Psychology & mental health — ${c.name}`, set.psych.map(([n,d,f])=>[n,d,f(kw,loc)])]);
+  if(set.national.length)
+    groups.push([`${c.name} boards`, set.national.map(([n,d,f])=>[n,d,f(kw,loc)])]);
+  groups.push(["Global boards", [
+    ["Indeed "+c.short,"Largest general job board", `https://${set.indeed}/jobs?q=${kw}&l=${loc}`],
+    ["LinkedIn Jobs","Roles + your network", `https://www.linkedin.com/jobs/search/?keywords=${kw}&location=${encodeURIComponent(prefs.location||c.name)}`],
+    ["Glassdoor "+c.short,"Jobs with salary & reviews", `https://www.glassdoor.${set.glassdoor}/Job/jobs.htm?sc.keyword=${kw}`],
+    ["Google Jobs","Aggregates everything", `https://www.google.com/search?q=${kw}+jobs+${loc||encodeURIComponent(c.name)}&ibp=htl;jobs`],
+  ]]);
+  $("#boardsList").innerHTML = groups.map(([label, items])=>
+    `<div class="grouplabel">${esc(label)}</div>`+
+    items.map(([n,d,u])=>`
+      <a class="board" href="${esc(u)}" target="_blank" rel="noopener">
+        <span><span class="b-name">${esc(n)}</span><br><span class="b-desc">${esc(d)}</span></span>
+        <span class="arrow">↗</span>
+      </a>`).join("")
+  ).join("");
+}
+
+/* ---------- settings ---------- */
+const FIELDS = {
+  pKeywords:"keywords", pIndustry:"industry", pLevel:"level", pCountry:"country", pLocation:"location",
+  pSalary:"salary", pDistance:"distance", pMaxAge:"maxAge", pFullTime:"fullTime", pRemote:"remote",
+  pStrict:"strict", pBlockKw:"blockKw", pBlockCo:"blockCo", pHideAgency:"hideAgency", pHideNoSalary:"hideNoSalary",
+  pEmail:"email", ejsService:"ejsService", ejsTemplate:"ejsTemplate", ejsKey:"ejsKey",
+  adzId:"adzId", adzKey:"adzKey", joobleKey:"joobleKey"
+};
+
+function buildCountrySelect(){
+  $("#pCountry").innerHTML = Object.entries(COUNTRIES)
+    .map(([code,c])=>`<option value="${code}">${c.flag}  ${esc(c.name)}</option>`).join("");
+}
+
+function renderTags(inputId, containerId){
+  const items = splitList(document.getElementById(inputId).value);
+  document.getElementById(containerId).innerHTML = items.map((t,i)=>
+    `<span class="tag">${esc(t)}<button type="button" data-rm="${i}" data-for="${inputId}" title="Remove">×</button></span>`).join("");
+}
+document.addEventListener("click", e=>{
+  const b = e.target.closest("[data-rm]");
+  if(!b) return;
+  const input = document.getElementById(b.dataset.for);
+  const items = splitList(input.value);
+  items.splice(Number(b.dataset.rm), 1);
+  input.value = items.join(", ");
+  renderTags(b.dataset.for, b.dataset.for==="pBlockKw" ? "blockKwTags" : "blockCoTags");
+});
+
+function updateEchoes(){
+  const code = $("#pCountry").value, c = COUNTRIES[code] || COUNTRIES.gb;
+  const city = $("#pLocation").value.trim(), strict = $("#pStrict").checked;
+  $("#countryEcho").innerHTML =
+    `${c.flag} Searching <b>${esc(c.name)}</b>${city?` near <b>${esc(city)}</b>`:" (whole country)"}.<br>` +
+    `Adzuna is asked for <b>/${esc(code)}/</b>, Jooble and The Muse for <b>${esc(c.name)}</b>, ` +
+    `and results from anywhere else are ${strict?"<b>hidden</b>":"<b>shown with a country flag</b>"}.`;
+
+  const kws = splitList($("#pKeywords").value);
+  $("#kwNote").innerHTML = kws.length <= 1
+    ? "Separate alternatives with commas — each one is searched separately."
+    : `All ${kws.length} searched: ${kws.map(k=>"<b>"+esc(k)+"</b>").join(", ")}. ` +
+      (kws.length > MAX_KW
+        ? `<span style="color:var(--gold)">Jooble and Remotive use the first ${MAX_KW} only (one request each).</span>`
+        : "Adzuna matches any of them; Jooble and Remotive run one search per keyword.");
+  renderTags("pBlockKw","blockKwTags");
+  renderTags("pBlockCo","blockCoTags");
+}
+
+function loadForm(){
+  for(const [id,key] of Object.entries(FIELDS)){
+    const el=document.getElementById(id);
+    if(!el) continue;
+    if(el.type==="checkbox") el.checked=!!prefs[key]; else el.value=prefs[key]??"";
+  }
+  updateEchoes();
+}
+
+["#pCountry","#pLocation","#pStrict","#pKeywords","#pBlockKw","#pBlockCo"].forEach(sel=>{
+  const el = document.querySelector(sel);
+  el.addEventListener("change", updateEchoes);
+  el.addEventListener("input", updateEchoes);
+});
+
+$("#prefsForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const prevCountry = prefs.country;
+  for(const [id,key] of Object.entries(FIELDS)){
+    const el=document.getElementById(id);
+    if(!el) continue;
+    prefs[key]= el.type==="checkbox" ? el.checked : el.value.trim();
+  }
+  store.set(LS.prefs, prefs);
+  if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
+  const c = country();
+  toast(prevCountry!==prefs.country
+    ? `${c.flag} Now searching ${esc(c.name)} — old results cleared`
+    : "Preferences saved", "ok");
+  queue=[]; history=[];
+  renderLocPill(); renderBoards(); switchTab("swipe"); findJobs();
+});
+
+$("#btnReset").addEventListener("click", ()=>{
+  seen=new Set(); store.set(LS.seen,[]); queue=[]; history=[];
+  toast("Seen list cleared — all jobs can appear again","ok"); renderDeck();
+});
+
+/* ---------- tabs & keys ---------- */
+function switchTab(name){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("active", s.id==="view-"+name));
+  if(name==="settings") loadForm();
+  if(name==="boards") renderBoards();
+}
+document.querySelector("nav").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(b) switchTab(b.dataset.tab);
+});
+document.addEventListener("keydown", e=>{
+  if(!$("#view-swipe").classList.contains("active")) return;
+  if(e.key==="ArrowRight") swipeByButton(1);
+  if(e.key==="ArrowLeft") swipeByButton(-1);
+});
+$("#btnYes").addEventListener("click", ()=>swipeByButton(1));
+$("#btnNo").addEventListener("click", ()=>swipeByButton(-1));
+$("#btnUndo").addEventListener("click", undo);
+$("#btnFind").addEventListener("click", findJobs);
+$("#btnGoSettings").addEventListener("click", ()=>switchTab("settings"));
+$("#locPill").addEventListener("click", ()=>switchTab("settings"));
+
+/* ---------- boot ---------- */
+buildCountrySelect();
+if(prefs.ejsKey && window.emailjs) emailjs.init({publicKey:prefs.ejsKey});
+loadForm();
+renderLocPill(); renderSaved(); renderBoards(); renderDeck();
+if(store.get(LS.prefs, null)) findJobs();
+else $("#fetchStatus").textContent = "First time? Tap the location pill or Settings to set your preferences.";
+</script>
+</body>
+</html>
