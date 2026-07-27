@@ -58,6 +58,11 @@ function eq(a, b, label){
     return r.fulfill({ json: remotiveFor(s) });
   });
   await page.route(/cdn\.jsdelivr\.net/, r => r.fulfill({ body:'', contentType:'application/javascript' }));
+  // index.html now ships with working Adzuna/Jooble keys, so those sources are
+  // live rather than skipped. Stub them empty so the suite stays hermetic and
+  // never depends on (or burns quota against) the real APIs.
+  await page.route(/api\.adzuna\.com/, r => r.fulfill({ json: { results: [] } }));
+  await page.route(/jooble\.org/,      r => r.fulfill({ json: { jobs: [] } }));
 
   await page.goto('file://' + path.join(__dirname, 'index.html'));
 
