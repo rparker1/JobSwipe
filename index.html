@@ -324,8 +324,14 @@
           </div>
         </div>
         <div class="switch">
+          <label for="pRelevance">Only show jobs that mention my keywords
+            <span class="sublabel">None of these APIs reliably respects the search term — Remotive in particular returns unrelated tech roles. This checks each job's title and description itself. Matching is stem-based, so "Psychology" still matches "Psychologist".</span>
+          </label>
+          <input type="checkbox" id="pRelevance" checked>
+        </div>
+        <div class="switch">
           <label for="pFullTime">Full-time only
-            <span class="sublabel">Applied server-side by Adzuna and re-checked here for every other source.</span>
+            <span class="sublabel">Applied server-side by Adzuna and re-checked here for every other source. Also excludes contract, freelance and fixed-term roles.</span>
           </label>
           <input type="checkbox" id="pFullTime">
         </div>
@@ -510,9 +516,45 @@ function looksLikeAgency(job){
   return AGENCY_TEXT_RE.test(job.description || "");
 }
 
-const NOT_FULLTIME_RE = /\b(part[\s-]?time|temporary|temp\b|locum|bank\s|casual|zero[\s-]?hours?|internship|intern\b|volunteer|seasonal)\b/i;
+const NOT_FULLTIME_RE = /\b(part[\s-]?time|temporary|temp\b|locum|bank\s|casual|zero[\s-]?hours?|internship|intern\b|volunteer|seasonal|contract|contractor|freelance|self[\s-]?employed|fixed[\s-]?term|sessional|ad[\s-]?hoc)\b/i;
 function looksNotFullTime(job){
   return NOT_FULLTIME_RE.test((job.type||"") + " " + (job.title||""));
+}
+
+/* Keyword relevance.
+   A plain substring test fails the obvious case: "Psychology" is not a
+   substring of "Psychologist". Trim the common suffix so the two share a stem. */
+function kwStem(k){
+  const raw = String(k||"").toLowerCase().trim();
+  let s = raw
+    .replace(/(ologists|ologist|ologies|ology)$/, "olog")
+    .replace(/(ists|ist)$/, "")
+    .replace(/(ers|er)$/, "")
+    .replace(/ies$/, "y")
+    .replace(/s$/, "");
+  return s.length >= 4 ? s : raw;
+}
+function keywordStems(list){ return list.map(kwStem).filter(Boolean); }
+
+/* Seniority. Only used to reject a title that explicitly advertises a
+   DIFFERENT level — an unmarked title is always kept. */
+const LEVEL_MARKERS = {
+  assistant: /\b(assistant|entry[\s-]?level|junior|trainee)\b/i,
+  graduate:  /\b(graduate|trainee|newly[\s-]?qualified|entry[\s-]?level|assistant)\b/i,
+  senior:    /\bsenior\b/i,
+  lead:      /\b(lead|principal|manager)\b/i,
+  director:  /\b(head of|director|chief|executive)\b/i,
+};
+const LEVEL_LABELS = { assistant:"Assistant / Entry", graduate:"Graduate / Trainee",
+                       senior:"Senior", lead:"Lead / Principal", director:"Head / Director" };
+function seniorityConflicts(title, want){
+  const wanted = LEVEL_MARKERS[want];
+  if(!wanted) return false;
+  if(wanted.test(title||"")) return false;                 // explicitly right
+  for(const [lvl, re] of Object.entries(LEVEL_MARKERS)){
+    if(lvl !== want && re.test(title||"")) return true;    // explicitly wrong
+  }
+  return false;                                            // unmarked — keep
 }
 
 function ageDays(job){
@@ -529,6 +571,17 @@ function splitList(s){
 /* Ordered filter chain. Each test returns true to KEEP.
    `trusted` means the source already applied the country server-side. */
 const FILTERS = [
+  /* First, because it is the biggest cut: none of these APIs reliably respects
+     the search term, so verify the job actually mentions what you asked for. */
+  { key:"relevance", label:()=>"off-topic",
+    on:c=>c.relevance && c.stems.length,
+    test:(j,c)=>{ const hay=((j.title||"")+" "+(j.description||"")).toLowerCase();
+                  return c.stems.some(s=>hay.includes(s)); } },
+
+  { key:"seniority", label:c=>`wrong level for "${c.levelLabel}"`,
+    on:c=>!!LEVEL_MARKERS[c.level],
+    test:(j,c)=> !seniorityConflicts(j.title, c.level) },
+
   { key:"country", label:c=>`outside ${c.countryName}`,
     on:c=>c.strict,
     test:(j,c)=> c.trusted || j.geo === null || j.geo === "any" || j.geo === c.country },
@@ -599,7 +652,7 @@ function dropLabel(key, ctx){
    hardcoded below would be public. Keys live in localStorage via Settings. */
 const DEFAULT_PREFS = {
   keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
-  salary:"", distance:"", maxAge:"", fullTime:false, remote:true, strict:true,
+  salary:"", distance:"", maxAge:"", fullTime:false, remote:true, strict:true, relevance:true,
   blockKw:"", blockCo:"", hideAgency:false, hideNoSalary:false,
   email:"", ejsService:"", ejsTemplate:"", ejsKey:"",
   adzId:"", adzKey:"", joobleKey:""
@@ -651,6 +704,10 @@ function filterCtx(trusted){
     salary: Number(prefs.salary) || 0,
     fullTime: !!prefs.fullTime,
     maxAge: Number(prefs.maxAge) || 0,
+    relevance: !!prefs.relevance,
+    stems: keywordStems(keywordList()),
+    level: prefs.level || "",
+    levelLabel: LEVEL_LABELS[prefs.level] || prefs.level || "",
   };
 }
 
@@ -666,7 +723,9 @@ async function srcAdzuna(){
   // FIX: was keywordList()[0] — every keyword is now sent, via what_or.
   if(kws.length > 1) p.set("what_or", kws.join(" "));
   else if(kws.length === 1) p.set("what", kws[0]);
-  if(prefs.level)    p.set("what_and", prefs.level);
+  // Seniority is deliberately NOT sent as what_and: that means "every one of
+  // these words must appear", which collapsed a Manchester psychology search
+  // to 3 results. It is applied leniently client-side instead.
   if(prefs.blockKw)  p.set("what_exclude", splitList(prefs.blockKw).join(" "));
   if(prefs.location) p.set("where", prefs.location);
   if(prefs.distance) p.set("distance", prefs.distance);
@@ -700,15 +759,15 @@ async function srcMuse(){
   const r = await fetch("https://www.themuse.com/api/public/jobs?"+p);
   if(!r.ok) throw new Error("Muse HTTP "+r.status);
   const d = await r.json();
-  const kws = keywordList().map(k=>k.toLowerCase());
-  let jobs = (d.results||[]).map(j=>({
+  // No inline keyword filter here any more — the shared relevance filter does
+  // it for every source, and reports what it removed.
+  const jobs = (d.results||[]).map(j=>({
     id:"muse_"+j.id, title:j.name, company:j.company?.name||"Unknown company",
     location:(j.locations||[]).map(l=>l.name).join(" · "), salary:"", salaryRaw:null,
     url:j.refs?.landing_page, description:stripHtml(j.contents),
     posted:j.publication_date, source:"The Muse",
     type:(j.levels||[]).map(l=>l.name).join(", ")
   }));
-  if(kws.length) jobs = jobs.filter(j=>kws.some(k=>(j.title+" "+j.description).toLowerCase().includes(k)));
   return {name:"The Muse", jobs};
 }
 
@@ -1112,7 +1171,8 @@ function renderBoards(){
 const FIELDS = {
   pKeywords:"keywords", pIndustry:"industry", pLevel:"level", pCountry:"country", pLocation:"location",
   pSalary:"salary", pDistance:"distance", pMaxAge:"maxAge", pFullTime:"fullTime", pRemote:"remote",
-  pStrict:"strict", pBlockKw:"blockKw", pBlockCo:"blockCo", pHideAgency:"hideAgency", pHideNoSalary:"hideNoSalary",
+  pStrict:"strict", pRelevance:"relevance",
+  pBlockKw:"blockKw", pBlockCo:"blockCo", pHideAgency:"hideAgency", pHideNoSalary:"hideNoSalary",
   pEmail:"email", ejsService:"ejsService", ejsTemplate:"ejsTemplate", ejsKey:"ejsKey",
   adzId:"adzId", adzKey:"adzKey", joobleKey:"joobleKey"
 };
