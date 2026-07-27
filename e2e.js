@@ -15,6 +15,9 @@ const MUSE = { results: [
   { id:3, name:"Senior Psychologist", company:{name:"Beta Health"},        // wrong country
     locations:[{name:"Austin, TX"}], refs:{landing_page:"https://ex.com/3"},
     contents:"psychologist role", publication_date:iso(2), levels:[] },
+  { id:4, name:"Head of Marketing & Communications", company:{name:"garden3d"},  // off-topic
+    locations:[{name:"London, United Kingdom"}], refs:{landing_page:"https://ex.com/4"},
+    contents:"tell the garden3d story across the internet", publication_date:iso(4), levels:[] },
 ]};
 
 // Remotive returns different jobs per keyword, so if only the first keyword is
@@ -73,6 +76,24 @@ function eq(a, b, label){
   const titles = await page.evaluate(() => queue.map(j => j.title).sort());
   ok(titles.includes('Remote Counsellor'),
      'the SECOND keyword produced a job — the keywordList()[0] bug is gone');
+
+  /* ---------- off-topic jobs are rejected (the reported screenshot bug) ---------- */
+  ok(!titles.includes('Head of Marketing & Communications'),
+     'a UK job that never mentions the keyword is rejected as off-topic');
+  ok(/off-topic/.test(await page.textContent('#filterReport')),
+     'and the reason is reported by name');
+  // "psychologist" matching a job whose text says "psychologist" is trivial; the
+  // real test is that stemming lets "Psychology" match too.
+  await page.click('nav button[data-tab="settings"]');
+  await page.fill('#pKeywords', 'Psychology');
+  await page.click('#prefsForm button[type="submit"]');
+  await page.waitForFunction(() => typeof queue !== 'undefined' && queue.length > 0, null, { timeout: 8000 });
+  ok(await page.evaluate(() => queue.some(j => /Psychologist/.test(j.title))),
+     'searching "Psychology" still matches "...Psychologist" jobs (stemming)');
+  await page.click('nav button[data-tab="settings"]');
+  await page.fill('#pKeywords', 'psychologist, counsellor');
+  await page.click('#prefsForm button[type="submit"]');
+  await page.waitForFunction(() => typeof queue !== 'undefined' && queue.length > 0, null, { timeout: 8000 });
 
   /* ---------- country filtering still holds ---------- */
   ok(!titles.includes('Senior Psychologist'), 'the Austin TX job was filtered out of a UK search');
