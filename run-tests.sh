@@ -16,8 +16,9 @@ app  = re.findall(r'<script>(.*?)</script>', html, re.S)[-1]
 open('app.extracted.js','w').write(app)
 core = app[app.index('const COUNTRIES = {'):app.index('   END FILTER CORE')]
 core = core[:core.rindex('/* ====')]
-core += ("\nmodule.exports={COUNTRIES,countryOf,parseSalary,looksLikeAgency,"
-         "looksNotFullTime,ageDays,splitList,annotate,applyFilters,dropLabel,FILTERS};\n")
+core += ("\nmodule.exports={COUNTRIES,countryOf,parseSalary,looksLikeAgency,looksNotFullTime,"
+         "kwStem,keywordStems,seniorityConflicts,LEVEL_MARKERS,LEVEL_LABELS,"
+         "ageDays,splitList,annotate,applyFilters,dropLabel,FILTERS};\n")
 open('core.fromhtml.js','w').write('"use strict";\n' + core)
 PY
 
