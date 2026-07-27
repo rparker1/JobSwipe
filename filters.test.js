@@ -2,6 +2,7 @@
 /* Unit tests against the filter core carved straight out of index.html. */
 const C = require("./core.fromhtml.js");
 const { countryOf, parseSalary, looksLikeAgency, looksNotFullTime,
+        kwStem, keywordStems, seniorityConflicts,
         splitList, annotate, applyFilters, dropLabel } = C;
 
 let pass = 0, fail = 0;
@@ -60,6 +61,29 @@ ok(looksNotFullTime({title:"Part-time Psychologist", type:""}),  "part-time in t
 ok(looksNotFullTime({title:"Psychologist", type:"Temporary"}),   "temporary in type");
 ok(!looksNotFullTime({title:"Clinical Psychologist", type:"Full-time"}), "full-time survives");
 
+/* ---------- keyword stemming: "Psychology" must match "Psychologist" ---------- */
+eq(kwStem("Psychology"),   "psycholog", "psychology -> psycholog");
+eq(kwStem("psychologist"), "psycholog", "psychologist -> same stem");
+eq(kwStem("therapist"),    "therap",    "therapist -> therap");
+eq(kwStem("nurses"),       "nurse",     "plural trimmed");
+eq(kwStem("mental health"),"mental health", "multi-word left alone");
+eq(kwStem("HR"),           "hr",        "too short to stem, kept whole");
+ok("clinical psychologist".includes(kwStem("Psychology")),
+   "the reported case: searching Psychology now matches a Psychologist job");
+
+/* ---------- seniority: reject only an explicitly different level ---------- */
+ok(seniorityConflicts("Head of Marketing & Communications", "graduate"), "Head of vs graduate");
+ok(seniorityConflicts("Senior Independent AI Engineer", "graduate"),     "Senior vs graduate");
+ok(!seniorityConflicts("Assistant Psychologist", "graduate"),  "assistant counts as graduate-ish");
+ok(!seniorityConflicts("Clinical Psychologist", "graduate"),   "unmarked title is kept");
+ok(!seniorityConflicts("Anything at all", ""),                 "no level set -> never conflicts");
+ok(seniorityConflicts("Trainee Psychologist", "director"),     "trainee vs director");
+
+/* ---------- contract work is not full-time ---------- */
+ok(looksNotFullTime({title:"Senior Developer", type:"contract"}), "contract");
+ok(looksNotFullTime({title:"Freelance Writer", type:""}),         "freelance");
+ok(looksNotFullTime({title:"Psychologist", type:"fixed term"}),   "fixed term");
+
 /* ---------- splitList ---------- */
 eq(splitList("a, b ,, c "), ["a","b","c"], "trims and drops empties");
 eq(splitList(""), [], "empty string");
@@ -69,6 +93,7 @@ const ctx = {
   trusted:false, country:"gb", countryName:"United Kingdom", cur:"£", strict:true,
   blockKw:["night shift"], blockCo:["Hays"], hideAgency:false, hideNoSalary:false,
   salary:30000, fullTime:true, maxAge:14,
+  relevance:false, stems:[], level:"", levelLabel:"",
 };
 const jobs = [
   { title:"Clinical Psychologist", company:"NHS Trust",  location:"Leeds",           salary:"£35,000", posted:daysAgo(2)  },
@@ -100,7 +125,8 @@ eq(strictSalary.drops.nosalary, 1, "and attributes it to nosalary");
 /* Turning every filter off must return everything — proves nothing is hardcoded. */
 const off = applyFilters(jobs, {
   trusted:false, country:"gb", countryName:"United Kingdom", cur:"£", strict:false,
-  blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false, salary:0, fullTime:false, maxAge:0 });
+  blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false, salary:0, fullTime:false, maxAge:0,
+  relevance:false, stems:[], level:"", levelLabel:"" });
 eq(off.kept.length, jobs.length, "all filters off returns every job");
 eq(off.drops, {}, "and drops nothing");
 
@@ -110,7 +136,8 @@ const agencyJobs = [
   { title:"B", company:"NHS Trust",        location:"Leeds", posted:daysAgo(1) },
 ].map(j=>annotate(j));
 const agencyOff = { trusted:false, country:"gb", countryName:"UK", cur:"£", strict:false,
-  blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false, salary:0, fullTime:false, maxAge:0 };
+  blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false, salary:0, fullTime:false, maxAge:0,
+  relevance:false, stems:[], level:"", levelLabel:"" };
 eq(applyFilters(agencyJobs, agencyOff).kept.length, 2, "agency listings kept when toggle off");
 eq(applyFilters(agencyJobs, Object.assign({}, agencyOff, {hideAgency:true})).kept.map(j=>j.title),
    ["B"], "agency listings dropped when toggle on");
@@ -121,5 +148,50 @@ eq(dropLabel("country", ctx),  "outside United Kingdom", "country label");
 eq(dropLabel("salary",  ctx),  "under £30,000",          "salary label");
 eq(dropLabel("age",     ctx),  "older than 14 days",     "age label");
 
-console.log(`\n${pass} passed, ${fail} failed`);
+/* ============================================================
+   Regression: the exact result set from the reported screenshots.
+   Searching "Psychology", Graduate/Trainee, UK, full-time only —
+   and getting back contract AI/marketing roles from Remotive.
+   ============================================================ */
+const reported = [
+  { title:"Head of Marketing & Communications", company:"garden3d", location:"Worldwide · Remote",
+    salary:"$150k - $230k", type:"contract", posted:daysAgo(11),
+    description:"We are hiring a Head of Marketing & Communications to tell the garden3d story" },
+  { title:"Senior Independent AI Engineer / Architect", company:"A.Team",
+    location:"Americas, Europe, Israel · Remote", salary:"$120 - $170 /hour", type:"contract",
+    posted:daysAgo(11), description:"A.Team is an invite-only network of senior AI engineers" },
+  { title:"Senior Independent Software Developer", company:"A.Team",
+    location:"Americas, Europe, Israel · Remote", salary:"$90 - $150 /hour", type:"contract",
+    posted:daysAgo(11), description:"You must be located in the Americas, Europe, or Israel to apply" },
+  // ...and the kind of job that SHOULD have been showing instead
+  { title:"Assistant Psychologist", company:"Manchester NHS Foundation Trust", location:"Manchester",
+    salary:"£31,000", type:"Full-time", posted:daysAgo(4),
+    description:"An exciting opportunity for an assistant psychologist to join our team" },
+].map(j => annotate(j));
+
+const reportedCtx = {
+  trusted:false, country:"gb", countryName:"United Kingdom", cur:"£", strict:true,
+  blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false,
+  salary:30000, fullTime:true, maxAge:0,
+  relevance:true, stems:keywordStems(["Psychology"]), level:"graduate", levelLabel:"Graduate / Trainee",
+};
+const fixed = applyFilters(reported, reportedCtx);
+eq(fixed.kept.map(j=>j.title), ["Assistant Psychologist"],
+   "all three off-topic contract roles are gone; the NHS job survives");
+ok(!fixed.kept.some(j=>j.company === "A.Team"),  "no A.Team");
+ok(!fixed.kept.some(j=>j.company === "garden3d"), "no garden3d");
+
+/* Each of the three failures is independently sufficient — check they're all real. */
+const only = extra => applyFilters(reported, Object.assign(
+  { trusted:false, country:"gb", countryName:"United Kingdom", cur:"£", strict:false,
+    blockKw:[], blockCo:[], hideAgency:false, hideNoSalary:false, salary:0, fullTime:false, maxAge:0,
+    relevance:false, stems:[], level:"", levelLabel:"" }, extra));
+eq(only({relevance:true, stems:keywordStems(["Psychology"])}).kept.map(j=>j.title),
+   ["Assistant Psychologist"], "relevance filter alone removes all three");
+eq(only({level:"graduate"}).kept.map(j=>j.title),
+   ["Assistant Psychologist"], "seniority filter alone removes all three");
+eq(only({fullTime:true}).kept.map(j=>j.title),
+   ["Assistant Psychologist"], "full-time filter alone removes all three (contract)");
+
+console.log(`\n${pass} passed, ${fail} failed  (totals above include the regression block)`);
 process.exit(fail ? 1 : 0);
