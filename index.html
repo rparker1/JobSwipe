@@ -539,8 +539,11 @@ function keywordStems(list){ return list.map(kwStem).filter(Boolean); }
 /* Seniority. Only used to reject a title that explicitly advertises a
    DIFFERENT level — an unmarked title is always kept. */
 const LEVEL_MARKERS = {
-  assistant: /\b(assistant|entry[\s-]?level|junior|trainee)\b/i,
-  graduate:  /\b(graduate|trainee|newly[\s-]?qualified|entry[\s-]?level|assistant)\b/i,
+  // Assistant/Entry and Graduate/Trainee are the same tier in practice, so they
+  // share a word set. Without this, picking "Assistant" hid "Graduate ..." roles
+  // while picking "Graduate" kept "Assistant ..." ones — asymmetric and wrong.
+  assistant: /\b(assistant|entry[\s-]?level|junior|trainee|graduate|newly[\s-]?qualified)\b/i,
+  graduate:  /\b(graduate|trainee|newly[\s-]?qualified|entry[\s-]?level|assistant|junior)\b/i,
   senior:    /\bsenior\b/i,
   lead:      /\b(lead|principal|manager)\b/i,
   director:  /\b(head of|director|chief|executive)\b/i,
