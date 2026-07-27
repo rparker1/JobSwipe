@@ -391,8 +391,9 @@
       <fieldset>
         <legend>Job source API keys</legend>
         <div class="warn">
-          Stored in this browser only (localStorage), never written into the page source.
-          Do not paste them back into this file — anything in the HTML is readable by every visitor.
+          This build ships with working keys inside the page, so it runs anywhere without setup.
+          They are readable by anyone who views source — that is the accepted trade-off.
+          Anything you type below overrides them and is stored on this device only.
         </div>
         <div class="grid2">
           <div class="field"><label for="adzId">Adzuna App ID</label><input id="adzId" placeholder="12345678"></div>
@@ -650,18 +651,36 @@ function dropLabel(key, ctx){
    END FILTER CORE
    ============================================================ */
 
-/* ---------- prefs ----------
-   No API keys here on purpose: this file is served to the browser, so anything
-   hardcoded below would be public. Keys live in localStorage via Settings. */
+/* ---------- built-in API keys ----------
+   These ship inside the page and are readable by anyone who views source. That
+   is a deliberate trade: the app then works on any device without re-entering
+   keys. The exposure is free-tier quota on Adzuna and Jooble.
+   EmailJS is the one with real teeth — lock its allowed origins to your own
+   domain in the EmailJS dashboard, or anyone can send mail through your account.
+   Anything typed into Settings overrides these and stays on that device only. */
+const BUILTIN_KEYS = {
+  adzId:      "35c8d5d9",
+  adzKey:     "11991a9bd1fcb5b2da80c34892a55b55",
+  joobleKey:  "5cbeb778-f133-4fa3-8d22-abcd8474019a",
+  ejsService: "service_na5yeqp",
+  ejsTemplate:"template_nql1yql",
+  ejsKey:     "OFOxgXjvOlBFEdVK-",
+};
+
+/* ---------- prefs ---------- */
 const DEFAULT_PREFS = {
   keywords:"psychologist", industry:"psychology", level:"", country:"gb", location:"",
   salary:"", distance:"", maxAge:"", fullTime:false, remote:true, strict:true, relevance:true,
   blockKw:"", blockCo:"", hideAgency:false, hideNoSalary:false,
-  email:"", ejsService:"", ejsTemplate:"", ejsKey:"",
-  adzId:"", adzKey:"", joobleKey:""
+  email:"",
+  ...BUILTIN_KEYS
 };
 
-let prefs   = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
+let prefs = Object.assign({}, DEFAULT_PREFS, store.get(LS.prefs, {}));
+/* A saved-but-empty key must not mask the built-in one. Anyone who used the
+   keyless build and hit Save has "" stored for these, which would otherwise
+   override the defaults above and look like the app had broken. */
+for(const k of Object.keys(BUILTIN_KEYS)) if(!prefs[k]) prefs[k] = BUILTIN_KEYS[k];
 let seen    = new Set(store.get(LS.seen, []));
 let saved   = store.get(LS.saved, []);
 let queue   = [];
